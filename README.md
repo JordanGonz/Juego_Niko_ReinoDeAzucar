@@ -82,5 +82,4 @@ El juego está disponible en:
 
 [https://niko-reino-azucar.jordan2023.chatgpt.site](https://niko-reino-azucar.jordan2023.chatgpt.site)
 
-El despliegue se administra desde **Sites** en la barra lateral de ChatGPT o
-desde la conversación de Codex donde se creó.
+El despliegue se administra desde **Sites** en ChatGPT .
