@@ -76,6 +76,16 @@ export default function Home() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const resizeCanvas = () => {
+      const bounds = canvas.getBoundingClientRect();
+      const isPortrait = window.innerWidth <= 760 && window.innerHeight > window.innerWidth;
+      canvas.height = 540;
+      canvas.width = isPortrait
+        ? Math.max(320, Math.round(540 * (bounds.width / Math.max(bounds.height, 1))))
+        : 960;
+    };
+    resizeCanvas();
+
     const player = { x: 100, y: 380, w: 38, h: 50, vx: 0, vy: 0, grounded: false, facing: 1, inv: 0 };
     let camera = 0;
     let localScore = 0;
@@ -107,6 +117,7 @@ export default function Home() {
     const up = (e: KeyboardEvent) => { keys.current[e.code] = false; };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
+    window.addEventListener("resize", resizeCanvas);
 
     const drawCloud = (x: number, y: number, s: number) => {
       ctx.fillStyle = "rgba(255,255,255,.82)";
@@ -256,6 +267,7 @@ export default function Home() {
     return () => {
       cancelAnimationFrame(raf.current);
       window.removeEventListener("keydown",down); window.removeEventListener("keyup",up);
+      window.removeEventListener("resize", resizeCanvas);
     };
   }, [beep, start]);
 
@@ -290,9 +302,11 @@ export default function Home() {
           </div>
         )}
         <div className="mobile-controls">
-          <button aria-label="Mover a la izquierda" onPointerDown={()=>touch("ArrowLeft",true)} onPointerUp={()=>touch("ArrowLeft",false)} onPointerLeave={()=>touch("ArrowLeft",false)}>←</button>
-          <button aria-label="Mover a la derecha" onPointerDown={()=>touch("ArrowRight",true)} onPointerUp={()=>touch("ArrowRight",false)} onPointerLeave={()=>touch("ArrowRight",false)}>→</button>
-          <button className="jump" aria-label="Saltar" onPointerDown={()=>touch("Space",true)} onPointerUp={()=>touch("Space",false)} onPointerLeave={()=>touch("Space",false)}>↑</button>
+          <div className="move-controls">
+            <button aria-label="Mover a la izquierda" onPointerDown={()=>touch("ArrowLeft",true)} onPointerUp={()=>touch("ArrowLeft",false)} onPointerCancel={()=>touch("ArrowLeft",false)} onPointerLeave={()=>touch("ArrowLeft",false)}>←</button>
+            <button aria-label="Mover a la derecha" onPointerDown={()=>touch("ArrowRight",true)} onPointerUp={()=>touch("ArrowRight",false)} onPointerCancel={()=>touch("ArrowRight",false)} onPointerLeave={()=>touch("ArrowRight",false)}>→</button>
+          </div>
+          <button className="jump" aria-label="Saltar" onPointerDown={()=>touch("Space",true)} onPointerUp={()=>touch("Space",false)} onPointerCancel={()=>touch("Space",false)} onPointerLeave={()=>touch("Space",false)}>↑</button>
         </div>
       </section>
       <footer><span>CAPÍTULO 01</span><b>VALLE DE LOS MIL SABORES</b><span>LLEGA A LA BANDERA ✦</span></footer>
