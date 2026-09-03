@@ -31,3 +31,32 @@ export type RuntimeEnemy = {
 export type Particle = {
   x: number; y: number; vx: number; vy: number; life: number; color: string;
 };
+
+export type RuntimeCoin = { x: number; y: number; taken: boolean };
+export type RuntimePickup = { x: number; y: number; type: PickupType; taken: boolean };
+
+export type GameEvent =
+  | { type: "stateChanged"; value: GameState }
+  | { type: "levelChanged"; value: number; coinGoal: number }
+  | { type: "scoreChanged"; value: number }
+  | { type: "coinsChanged"; value: number }
+  | { type: "livesChanged"; value: number }
+  | { type: "powerChanged"; value: GamePower }
+  | { type: "unlockedLevelChanged"; value: number };
+
+export type RenderState = {
+  level: Level;
+  activeLevel: number;
+  state: GameState;
+  player: Player;
+  enemies: readonly RuntimeEnemy[];
+  coins: readonly RuntimeCoin[];
+  pickups: readonly RuntimePickup[];
+  particles: readonly Particle[];
+  activePower: GamePower;
+  cameraX: number;
+  tick: number;
+  finishTimer: number;
+  debug: boolean;
+  fps: number;
+};
