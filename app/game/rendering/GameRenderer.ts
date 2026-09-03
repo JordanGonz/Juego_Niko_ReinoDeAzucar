@@ -58,6 +58,7 @@ export class GameRenderer {
     const height = this.logicalHeight;
     this.ensureBiomeAssets(level.biome);
     ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+    ctx.imageSmoothingEnabled = true;
     const world = this.worldRenderer.get(view);
     const worldContext = this.worldRenderer.context(ctx, view, width, height, this.assets);
     world.renderBackground(worldContext);
@@ -298,9 +299,79 @@ export class GameRenderer {
   }
 
   private configureGlobalSprites() {
-    const niko = this.assets.get(GLOBAL_ASSETS.niko.id); if (niko) this.playerRenderer = new SpritePlayerRenderer({ image: niko, frameWidth: niko.naturalWidth / 7, frameHeight: niko.naturalHeight / 4, columns: 7, pivotX: niko.naturalWidth / 14, pivotY: niko.naturalHeight / 4 * .96, scale: .21 });
-    (Object.entries(ENEMY_ASSET_BY_TYPE) as [keyof typeof ENEMY_ASSET_BY_TYPE, (typeof ENEMY_ASSET_BY_TYPE)[keyof typeof ENEMY_ASSET_BY_TYPE]][]).forEach(([type, asset]) => { const image = this.assets.get(asset.id); if (image) this.enemyRenderers.register(type, new SpriteEnemyRenderer(image, image.naturalWidth / 6, image.naturalHeight)); });
-    const projectile = this.assets.get(GLOBAL_ASSETS.projectile.id); if (projectile) this.projectileRenderer.setSprite(projectile);
+    const niko =
+      this.assets.get(
+        GLOBAL_ASSETS.niko.id,
+      );
+
+    if (niko) {
+      const frameWidth =
+        niko.naturalWidth / 8;
+
+      const frameHeight =
+        niko.naturalHeight / 4;
+
+      this.playerRenderer =
+        new SpritePlayerRenderer({
+          image: niko,
+
+          frameWidth,
+          frameHeight,
+
+          columns: 8,
+
+          pivotX:
+            frameWidth / 2,
+
+          pivotY:
+            frameHeight *
+            (92 / 96),
+
+          scale: 0.21,
+        });
+    }
+
+    (
+      Object.entries(
+        ENEMY_ASSET_BY_TYPE,
+      ) as [
+        keyof typeof ENEMY_ASSET_BY_TYPE,
+        (
+          typeof ENEMY_ASSET_BY_TYPE
+        )[keyof typeof ENEMY_ASSET_BY_TYPE],
+      ][]
+    ).forEach(
+      ([type, asset]) => {
+        const image =
+          this.assets.get(
+            asset.id,
+          );
+
+        if (!image) {
+          return;
+        }
+
+        this.enemyRenderers.register(
+          type,
+          new SpriteEnemyRenderer(
+            image,
+            image.naturalWidth / 6,
+            image.naturalHeight,
+          ),
+        );
+      },
+    );
+
+    const projectile =
+      this.assets.get(
+        GLOBAL_ASSETS.projectile.id,
+      );
+
+    if (projectile) {
+      this.projectileRenderer.setSprite(
+        projectile,
+      );
+    }
   }
   private ensureBiomeAssets(biome: RenderState["level"]["biome"]) { if (biome === "meadow" || this.requestedBiomes.has(biome)) return; this.requestedBiomes.add(biome); void this.assets.preload(worldAssetManifest(biome)); }
   private drawLoading() { const { ctx } = this; ctx.save(); ctx.fillStyle = "rgba(23,11,52,.84)"; ctx.fillRect(0, 0, this.logicalWidth, this.logicalHeight); ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = "1000 42px Arial"; ctx.fillText("NIKO", this.logicalWidth / 2, 230); ctx.fillStyle = "#ffe047"; ctx.font = "800 17px Arial"; ctx.fillText("Cargando aventura...", this.logicalWidth / 2, 265); ctx.fillStyle = "rgba(255,255,255,.2)"; ctx.fillRect(this.logicalWidth / 2 - 130, 286, 260, 9); ctx.fillStyle = "#39d8cf"; ctx.fillRect(this.logicalWidth / 2 - 130, 286, 260 * this.assets.progress, 9); ctx.restore(); }

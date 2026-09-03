@@ -1,84 +1,126 @@
 import { visualRect } from "../../entities/Player";
-import type { PlayerRenderArgs, PlayerRenderer } from "./PlayerRenderer";
+import type {
+  PlayerRenderArgs,
+  PlayerRenderer,
+} from "./PlayerRenderer";
 import { playerVisualTransform } from "./visualTransform";
 
 export type SpriteSheet = {
   image: CanvasImageSource;
+
   frameWidth: number;
   frameHeight: number;
+
   columns: number;
+
   pivotX: number;
   pivotY: number;
+
   scale: number;
 };
 
-export class SpritePlayerRenderer implements PlayerRenderer {
+export class SpritePlayerRenderer
+  implements PlayerRenderer
+{
+  private readonly inset = 2;
+
   constructor(
     private readonly sheet: SpriteSheet,
-    private readonly frameInset = 1,
   ) {}
 
-  render({ ctx, player, frame, tick }: PlayerRenderArgs) {
+  render({
+    ctx,
+    player,
+    frame,
+    tick,
+  }: PlayerRenderArgs) {
     const visual = visualRect(player);
-    const transform = playerVisualTransform(
-      player.animationState,
-      tick,
-    );
+
+    const transform =
+      playerVisualTransform(
+        player.animationState,
+        tick,
+      );
+
+    const column =
+      frame % this.sheet.columns;
+
+    const row =
+      Math.floor(
+        frame / this.sheet.columns,
+      );
 
     const sourceX =
-      (frame % this.sheet.columns) *
+      column *
         this.sheet.frameWidth +
-      this.frameInset;
+      this.inset;
 
     const sourceY =
-      Math.floor(frame / this.sheet.columns) *
+      row *
         this.sheet.frameHeight +
-      this.frameInset;
+      this.inset;
 
-    const sourceWidth = Math.max(
-      1,
-      this.sheet.frameWidth - this.frameInset * 2,
-    );
+    const sourceWidth =
+      this.sheet.frameWidth -
+      this.inset * 2;
 
-    const sourceHeight = Math.max(
-      1,
-      this.sheet.frameHeight - this.frameInset * 2,
-    );
+    const sourceHeight =
+      this.sheet.frameHeight -
+      this.inset * 2;
 
-    const width =
-      this.sheet.frameWidth * this.sheet.scale;
+    const drawWidth =
+      this.sheet.frameWidth *
+      this.sheet.scale;
 
-    const height =
-      this.sheet.frameHeight * this.sheet.scale;
+    const drawHeight =
+      this.sheet.frameHeight *
+      this.sheet.scale;
 
     const anchorX =
-      visual.x + visual.width / 2;
+      visual.x +
+      visual.width / 2;
 
     const anchorY =
       visual.y +
       visual.height +
       transform.offsetY;
 
+    const drawX =
+      -this.sheet.pivotX *
+      this.sheet.scale;
+
+    const drawY =
+      -this.sheet.pivotY *
+      this.sheet.scale;
+
     ctx.save();
 
     ctx.imageSmoothingEnabled = true;
 
-    ctx.translate(anchorX, anchorY);
+    ctx.translate(
+      Math.round(anchorX),
+      Math.round(anchorY),
+    );
+
     ctx.scale(
-      player.facing * transform.scaleX,
+      player.facing *
+        transform.scaleX,
       transform.scaleY,
     );
 
     ctx.drawImage(
       this.sheet.image,
-      sourceX,
-      sourceY,
-      sourceWidth,
-      sourceHeight,
-      -this.sheet.pivotX * this.sheet.scale,
-      -this.sheet.pivotY * this.sheet.scale,
-      width,
-      height,
+
+      Math.round(sourceX),
+      Math.round(sourceY),
+      Math.round(sourceWidth),
+      Math.round(sourceHeight),
+
+      Math.round(drawX),
+      Math.round(drawY),
+
+      Math.round(drawWidth),
+      Math.round(drawHeight),
     );
 
     ctx.restore();
