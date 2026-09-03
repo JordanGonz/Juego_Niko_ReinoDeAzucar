@@ -21,7 +21,11 @@ export const LEVELS: readonly Level[] = [
     ],
     coins: [[380,305],[455,305],[610,230],[665,230],[965,307],[1230,230],[1290,230],[1700,300],[1970,218],[2035,218],[2410,296],[2490,296],[2700,220],[2770,220],[3185,288],[3270,288],[3400,395]],
     pickups: [[1330,410,"heart"],[2010,215,"shield"],[2760,217,"boost"]],
-    enemies: [[560,0],[1040,1],[1780,2],[2500,3],[3260,4]],
+    enemies: [
+      { type:"blobHopper", x:560, platformIndex:0 }, { type:"spikeBeetle", x:1040, platformIndex:1, facing:-1 },
+      { type:"blobHopper", x:1780, platformIndex:2 }, { type:"bitePlant", x:2500, platformIndex:3 },
+      { type:"maskedBandit", x:3260, platformIndex:4, facing:-1 },
+    ],
   },
   {
     name: "Cañón de Caramelo", mission: "Salta entre las islas de caramelo sin caer al jarabe.",
@@ -36,7 +40,12 @@ export const LEVELS: readonly Level[] = [
     ],
     coins: [[290,294],[355,294],[770,268],[1030,183],[1085,183],[1360,288],[1630,203],[1690,203],[2010,278],[2230,193],[2600,294],[2670,294],[2860,208],[3240,268],[3450,178],[3505,178],[3760,273],[3850,395]],
     pickups: [[1035,180,"heart"],[2235,190,"shield"],[3465,175,"boost"]],
-    enemies: [[400,0],[820,1],[1450,2],[2070,3],[2700,4],[3270,5],[3800,6]],
+    enemies: [
+      { type:"rollingRock", x:400, platformIndex:0 }, { type:"spikeBeetle", x:820, platformIndex:1, facing:-1 },
+      { type:"robotCannon", x:1450, platformIndex:2 }, { type:"maskedBandit", x:2070, platformIndex:3, facing:-1 },
+      { type:"rollingRock", x:2700, platformIndex:4 }, { type:"bitePlant", x:3270, platformIndex:5 },
+      { type:"robotCannon", x:3800, platformIndex:6, facing:-1 },
+    ],
   },
   {
     name: "Grutas de Chocolate", mission: "Explora la cueva y evita el río de chocolate caliente.",
@@ -52,7 +61,12 @@ export const LEVELS: readonly Level[] = [
     ],
     coins: [[250,304],[315,304],[660,274],[920,183],[975,183],[1250,299],[1490,208],[1810,283],[2080,198],[2140,198],[2430,283],[2670,188],[2725,188],[3000,294],[3270,203],[3600,278],[3820,178],[3870,178],[4120,278],[4240,395]],
     pickups: [[1505,205,"heart"],[2685,185,"shield"],[3835,175,"boost"]],
-    enemies: [[350,0],[760,1],[1320,2],[1900,3],[2500,4],[3100,5],[3670,6],[4200,7]],
+    enemies: [
+      { type:"roundBat", x:350, platformIndex:0 }, { type:"stealthGhost", x:760, platformIndex:1, facing:-1 },
+      { type:"blobHopper", x:1320, platformIndex:2 }, { type:"bitePlant", x:1900, platformIndex:3 },
+      { type:"robotCannon", x:2500, platformIndex:4 }, { type:"stealthGhost", x:3100, platformIndex:5 },
+      { type:"roundBat", x:3670, platformIndex:6, facing:-1 }, { type:"maskedBandit", x:4200, platformIndex:7, facing:-1 },
+    ],
   },
   {
     name: "Castillo de Cristal", mission: "Cruza el hielo y devuelve la magia a la torre real.",
@@ -68,6 +82,11 @@ export const LEVELS: readonly Level[] = [
     ],
     coins: [[265,279],[325,279],[735,239],[990,159],[1040,159],[1325,289],[1595,199],[1985,274],[2220,179],[2270,179],[2575,279],[2840,189],[2890,189],[3215,274],[3460,174],[3795,264],[4040,164],[4090,164],[4350,269],[4520,395]],
     pickups: [[1005,155,"heart"],[2855,185,"shield"],[4055,160,"boost"]],
-    enemies: [[380,0],[800,1],[1420,2],[2050,3],[2670,4],[3280,5],[3830,6],[4430,7]],
+    enemies: [
+      { type:"rollingRock", x:380, platformIndex:0 }, { type:"stealthGhost", x:800, platformIndex:1 },
+      { type:"roundBat", x:1420, platformIndex:2 }, { type:"robotCannon", x:2050, platformIndex:3, facing:-1 },
+      { type:"spikeBeetle", x:2670, platformIndex:4 }, { type:"maskedBandit", x:3280, platformIndex:5, facing:-1 },
+      { type:"bitePlant", x:3830, platformIndex:6 }, { type:"rollingRock", x:4430, platformIndex:7, facing:-1 },
+    ],
   },
 ] as const;

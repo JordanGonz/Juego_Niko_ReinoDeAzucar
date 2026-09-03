@@ -5,7 +5,15 @@ export type GamePower = "" | "ESCUDO" | "TURBO";
 export type Facing = -1 | 1;
 export type PlayerState = "idle" | "run" | "jumpStart" | "jumpUp" | "fall" | "land" | "skid" | "hurt" | "death" | "victory";
 export type Platform = readonly [x: number, y: number, width: number, height: number];
-export type EnemySeed = readonly [x: number, platformIndex: number];
+export type EnemyType = "blobHopper" | "spikeBeetle" | "roundBat" | "rollingRock" | "stealthGhost" | "bitePlant" | "robotCannon" | "maskedBandit";
+export type EnemyState = "idle" | "patrol" | "alert" | "anticipate" | "airborne" | "land" | "attack" | "phase" | "recover" | "cooldown" | "hurt" | "defeated";
+export type EnemySeed = {
+  type: EnemyType;
+  x: number;
+  platformIndex: number;
+  facing?: Facing;
+  patrolRange?: number;
+};
 export type Bounds = { offsetX: number; offsetY: number; width: number; height: number };
 export type Rect = { x: number; y: number; width: number; height: number };
 
@@ -40,7 +48,31 @@ export type Player = {
 };
 
 export type RuntimeEnemy = {
-  x: number; y: number; vx: number; minX: number; maxX: number; alive: boolean;
+  id: string;
+  type: EnemyType;
+  state: EnemyState;
+  animationState: EnemyState;
+  animationFrame: number;
+  animationTimer: number;
+  x: number; y: number; vx: number; vy: number;
+  spawnX: number; baseY: number; platformY: number;
+  minX: number; maxX: number;
+  facing: Facing;
+  health: number; damage: number;
+  alive: boolean; defeated: boolean; stompeable: boolean; contactEnabled: boolean;
+  opacity: number;
+  collisionBounds: Bounds;
+  visualBounds: Bounds;
+  stateTimer: number; cooldown: number; phaseTimer: number; age: number;
+  detectionRange: number;
+};
+
+export type ProjectileType = "cannonBall";
+export type RuntimeProjectile = {
+  id: string; type: ProjectileType;
+  x: number; y: number; vx: number; vy: number;
+  damage: number; lifetime: number; alive: boolean;
+  collisionBounds: Bounds; visualBounds: Bounds;
 };
 
 export type Particle = {
@@ -65,6 +97,7 @@ export type RenderState = {
   state: GameState;
   player: Player;
   enemies: readonly RuntimeEnemy[];
+  projectiles: readonly RuntimeProjectile[];
   coins: readonly RuntimeCoin[];
   pickups: readonly RuntimePickup[];
   particles: readonly Particle[];

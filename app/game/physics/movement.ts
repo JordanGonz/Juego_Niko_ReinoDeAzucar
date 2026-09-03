@@ -1,18 +1,4 @@
-import type { Level, RuntimeEnemy } from "../types";
-
-export function createEnemies(level: Level): RuntimeEnemy[] {
-  return level.enemies.map(([x, platformIndex], index) => {
-    const [platformX, platformY, platformWidth] = level.platforms[platformIndex];
-    return {
-      x,
-      y: platformY - 34,
-      vx: index % 2 ? -1.15 : 1.15,
-      minX: platformX + 24,
-      maxX: platformX + platformWidth - 24,
-      alive: true,
-    };
-  });
-}
+import type { RuntimeEnemy } from "../types";
 
 export function moveEnemy(enemy: RuntimeEnemy) {
   enemy.x += enemy.vx;

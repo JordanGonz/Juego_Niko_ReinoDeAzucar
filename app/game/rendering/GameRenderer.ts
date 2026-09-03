@@ -1,7 +1,11 @@
 import { FLOOR, LEVELS } from "../levels";
 import { collisionRect, visualRect } from "../entities/Player";
+import { projectileCollisionRect } from "../entities/Projectile";
+import { getEnemyDebugData } from "../enemies/debug";
 import { PlaceholderPlayerRenderer } from "./player/PlaceholderPlayerRenderer";
 import type { PlayerRenderer } from "./player/PlayerRenderer";
+import { EnemyRendererFactory } from "./enemy/EnemyRendererFactory";
+import { ProjectileRenderer } from "./enemy/ProjectileRenderer";
 import type { Biome, RenderState } from "../types";
 
 const PLATFORM_PALETTE: Record<Biome, readonly [string, string, string, string]> = {
@@ -9,10 +13,6 @@ const PLATFORM_PALETTE: Record<Biome, readonly [string, string, string, string]>
   canyon: ["#ffd35a", "#f29b38", "#bc4f48", "#702e4d"],
   cave: ["#f08c9d", "#ba4c79", "#6a3153", "#351d3f"],
   crystal: ["#b9fff4", "#55d8df", "#5262bd", "#29265f"],
-};
-
-const ENEMY_COLORS: Record<Biome, string> = {
-  meadow: "#d83cff", canyon: "#e83f50", cave: "#ff7da8", crystal: "#5d65ef",
 };
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
@@ -23,6 +23,8 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: n
 export class GameRenderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly playerRenderer: PlayerRenderer = new PlaceholderPlayerRenderer();
+  private readonly enemyRenderers = new EnemyRendererFactory();
+  private readonly projectileRenderer = new ProjectileRenderer();
   private logicalWidth = 960;
   private readonly logicalHeight = 540;
   private pixelRatio = 1;
@@ -97,13 +99,9 @@ export class GameRenderer {
 
     view.enemies.forEach((enemy) => {
       if (!enemy.alive) return;
-      ctx.save(); ctx.translate(enemy.x, enemy.y);
-      ctx.fillStyle = ENEMY_COLORS[level.biome]; roundRect(ctx, -18, 0, 36, 31, 14); ctx.fill();
-      ctx.fillStyle = "#8b1eb3"; ctx.beginPath(); ctx.arc(-10, 30, 7, 0, Math.PI * 2); ctx.arc(10, 30, 7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(-7, 11, 5, 0, Math.PI * 2); ctx.arc(7, 11, 5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#35104b"; ctx.beginPath(); ctx.arc(-6, 12, 2, 0, Math.PI * 2); ctx.arc(6, 12, 2, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
+      this.enemyRenderers.get(enemy.type).render({ ctx, enemy, tick });
     });
+    view.projectiles.forEach((projectile) => this.projectileRenderer.render(ctx, projectile));
 
     const goalX = level.width - 150;
     ctx.fillStyle = "#ffda3d"; ctx.fillRect(goalX, 235, 14, 223);
@@ -223,8 +221,24 @@ export class GameRenderer {
     ctx.strokeRect(collision.x, collision.y, collision.width, collision.height);
     ctx.strokeStyle = "rgba(80,255,120,.9)";
     ctx.strokeRect(visual.x, visual.y, visual.width, visual.height);
-    ctx.strokeStyle = "rgba(255,70,90,.9)";
-    view.enemies.forEach((enemy) => { if (enemy.alive) ctx.strokeRect(enemy.x - 18, enemy.y, 36, 34); });
+    view.enemies.forEach((enemy) => {
+      if (!enemy.alive) return;
+      const data = getEnemyDebugData(enemy);
+      ctx.strokeStyle = "rgba(255,70,90,.95)";
+      ctx.strokeRect(data.collision.x, data.collision.y, data.collision.width, data.collision.height);
+      ctx.strokeStyle = "rgba(255,150,230,.8)";
+      ctx.strokeRect(data.visual.x, data.visual.y, data.visual.width, data.visual.height);
+      ctx.strokeStyle = "rgba(255,210,50,.55)";
+      ctx.strokeRect(data.patrol[0], enemy.platformY - 3, data.patrol[1] - data.patrol[0], 6);
+      ctx.fillStyle = "rgba(10,8,30,.86)"; ctx.fillRect(data.visual.x, data.visual.y - 30, 215, 27);
+      ctx.fillStyle = "#fff"; ctx.font = "11px monospace";
+      ctx.fillText(`${data.type} ${data.state} hp:${data.health} f:${data.facing} t:${data.timer}`, data.visual.x + 3, data.visual.y - 25);
+      ctx.fillText(`detect:${data.detectionRange} x:${enemy.x.toFixed(0)}`, data.visual.x + 3, data.visual.y - 13);
+    });
+    ctx.strokeStyle = "rgba(255,155,30,.95)";
+    view.projectiles.forEach((projectile) => {
+      const rect = projectileCollisionRect(projectile); ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+    });
     ctx.restore();
 
     ctx.save(); ctx.fillStyle = "rgba(10,8,30,.82)"; ctx.fillRect(10, 10, 315, 214);
@@ -241,7 +255,7 @@ export class GameRenderer {
       `jump buffer ${view.player.jumpBufferTimer.toFixed(3)}s`,
       `camera ${view.cameraX.toFixed(1)}`,
       `facing ${view.player.facing}`,
-      "cyan=collision green=visual yellow=platform",
+      "cyan=player red=enemy orange=projectile",
       "F2: ocultar debug",
     ];
     lines.forEach((line, index) => ctx.fillText(line, 20, 18 + index * 17));

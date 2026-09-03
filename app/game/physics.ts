@@ -1,2 +1,3 @@
 export { landPlayer, overlapsEnemy } from "./physics/collision";
-export { clampPlayerX, createEnemies, moveEnemy } from "./physics/movement";
+export { clampPlayerX, moveEnemy } from "./physics/movement";
+export { createEnemies } from "./enemies/factory";

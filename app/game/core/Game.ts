@@ -3,13 +3,17 @@ import { PLAYER_ANIMATION_CLIPS, resolvePlayerState } from "../animation/playerA
 import { playTone } from "../audio";
 import { Camera } from "../camera/Camera";
 import { collisionRect, createPlayer, resetPlayer } from "../entities/Player";
+import { classifyEnemyContact, damagePlayerFromEnemy, defeatEnemy } from "../enemies/collision";
+import { updateEnemyBehavior } from "../enemies/behaviors";
+import { createEnemies } from "../enemies/factory";
 import { FLOOR, LEVELS, MAX_LIVES, PROGRESS_KEY } from "../levels";
-import { landPlayer, overlapsEnemy } from "../physics/collision";
-import { clampPlayerX, createEnemies, moveEnemy } from "../physics/movement";
+import { landPlayer } from "../physics/collision";
+import { clampPlayerX } from "../physics/movement";
 import { applyGravity, applyJumpCut, bufferJump, consumeBufferedJump, moveTowards, refreshCoyoteTime, updatePlayerTimers } from "../physics/playerMovement";
 import { movementForLevel } from "../physics/tuning";
 import { GameRenderer } from "../rendering/GameRenderer";
 import { ParticleSystem } from "../systems/ParticleSystem";
+import { damagePlayerFromProjectile, ProjectileSystem } from "../systems/ProjectileSystem";
 import type { GameEvent, GamePower, GameState, Player, PlayerState, RuntimeCoin, RuntimeEnemy, RuntimePickup } from "../types";
 import { FIXED_UPDATE_RATE, GameLoop } from "./GameLoop";
 import { InputManager } from "./InputManager";
@@ -25,6 +29,7 @@ export class Game {
   private readonly camera = new Camera();
   private readonly player: Player = createPlayer();
   private readonly particles = new ParticleSystem();
+  private readonly projectiles = new ProjectileSystem();
   private readonly animation = new AnimationController<PlayerState>(PLAYER_ANIMATION_CLIPS, "idle");
   private state: GameState = "ready";
   private activeLevel = 0;
@@ -118,6 +123,7 @@ export class Game {
     this.pickupList = this.level.pickups.map(([x, y, type]) => ({ x, y, type, taken: false }));
     this.enemies = createEnemies(this.level);
     this.particles.clear();
+    this.projectiles.clear();
     this.animation.setState("idle");
     this.emit({ type: "levelChanged", value: index, coinGoal: this.level.coins.length });
   }
@@ -214,6 +220,13 @@ export class Game {
     this.collectCoins();
     this.collectPickups();
     this.updateEnemies(config.hurtDuration);
+    this.projectiles.update(this.level.width);
+    const projectileHit = this.player.inv <= 0 ? this.projectiles.consumePlayerHit(this.player) : null;
+    if (projectileHit) {
+      this.particles.spawnProjectileImpact(projectileHit.x, projectileHit.y);
+      const damage = damagePlayerFromProjectile(this.player, projectileHit);
+      this.hurtPlayer(damage, this.player.vx < 0 ? -1 : 1, config.hurtDuration, true);
+    }
 
     if (this.player.inv > 0) this.player.inv--;
     if (this.powerTimer > 0) {
@@ -261,24 +274,35 @@ export class Game {
   private updateEnemies(hurtDuration: number) {
     this.enemies.forEach((enemy) => {
       if (!enemy.alive) return;
-      moveEnemy(enemy);
-      const body = collisionRect(this.player);
-      const hit = overlapsEnemy(this.player, enemy);
-      if (hit && this.player.vy > 2 && body.y + body.height < enemy.y + 18) {
-        enemy.alive = false; this.player.vy = -9; this.setScore(this.score + 250);
-        this.particles.spawnEnemyStomp(enemy.x, enemy.y); this.camera.impulse(1.2, 3); this.beep(170, 0.1);
-      } else if (hit && this.player.inv <= 0) {
-        this.player.inv = 100; this.player.hurtTimer = hurtDuration;
-        this.player.vy = -8; this.player.vx = -this.player.facing * 7;
-        if (this.activePower === "ESCUDO") {
-          this.activePower = ""; this.powerTimer = 0; this.emit({ type: "powerChanged", value: "" });
-          this.particles.burst(this.player.x, this.player.y, "#75f7e7", 22); this.beep(240, 0.18);
-        } else {
-          this.setLives(this.lives - 1); this.particles.spawnPlayerHit(this.player); this.camera.impulse(2, 5); this.beep(110, 0.18);
-          if (this.lives <= 0) this.setState("lost");
-        }
+      updateEnemyBehavior(enemy, {
+        player:this.player, particles:this.particles,
+        fireProjectile:(source) => { this.projectiles.fireCannonBall(source); this.beep(190, 0.07); },
+      });
+      const contact = classifyEnemyContact(this.player, enemy);
+      if (contact === "stomp") {
+        if (defeatEnemy(enemy, this.particles)) this.setScore(this.score + 250);
+        this.player.vy = -9; this.particles.spawnEnemyStomp(enemy.x, enemy.y);
+        this.camera.impulse(1.2, 3); this.beep(170, 0.1);
+      } else if (contact === "side" && this.player.inv <= 0) {
+        const damage = damagePlayerFromEnemy(this.player, enemy);
+        this.hurtPlayer(damage, this.player.vx < 0 ? -1 : 1, hurtDuration, true);
       }
     });
+  }
+
+  private hurtPlayer(damage: number, knockbackDirection: number, hurtDuration: number, alreadyKnockedBack = false) {
+    if (!alreadyKnockedBack) {
+      this.player.inv = 100; this.player.vy = -8; this.player.vx = knockbackDirection * 7;
+    }
+    this.player.hurtTimer = hurtDuration;
+    if (this.activePower === "ESCUDO") {
+      this.activePower = ""; this.powerTimer = 0; this.emit({ type: "powerChanged", value: "" });
+      this.particles.burst(this.player.x, this.player.y, "#75f7e7", 22); this.beep(240, 0.18);
+      return;
+    }
+    this.setLives(this.lives - damage); this.particles.spawnPlayerHit(this.player);
+    this.camera.impulse(2, 5); this.beep(110, 0.18);
+    if (this.lives <= 0) this.setState("lost");
   }
 
   private loseLife() {
@@ -329,6 +353,7 @@ export class Game {
       state: this.state,
       player: this.player,
       enemies: this.enemies,
+      projectiles: this.projectiles.projectiles,
       coins: this.coinList,
       pickups: this.pickupList,
       particles: this.particles.particles,

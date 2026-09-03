@@ -1,4 +1,5 @@
 import { collisionRect } from "../entities/Player.ts";
+import { enemyCollisionRect } from "../entities/Enemy.ts";
 import type { Level, Player, RuntimeEnemy } from "../types";
 
 export function landPlayer(player: Player, level: Level, oldBottom: number) {
@@ -18,6 +19,7 @@ export function landPlayer(player: Player, level: Level, oldBottom: number) {
 
 export function overlapsEnemy(player: Player, enemy: RuntimeEnemy) {
   const body = collisionRect(player);
-  return body.x + body.width > enemy.x - 18 && body.x < enemy.x + 18 &&
-    body.y + body.height > enemy.y && body.y < enemy.y + 34;
+  const target = enemyCollisionRect(enemy);
+  return enemy.alive && enemy.contactEnabled && body.x + body.width > target.x && body.x < target.x + target.width &&
+    body.y + body.height > target.y && body.y < target.y + target.height;
 }

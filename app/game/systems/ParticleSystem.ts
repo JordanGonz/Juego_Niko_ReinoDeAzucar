@@ -30,6 +30,11 @@ export class ParticleSystem {
   spawnSkidDust(player: Player) { this.dust(player.x + 15, player.y + player.collisionBounds.height, 6); }
   spawnPlayerHit(player: Player) { this.burst(player.x + 15, player.y + 22, "#ff557c", 14); }
   spawnEnemyStomp(x: number, y: number) { this.burst(x, y, "#f16aff", 16); }
+  spawnEnemyDefeat(x: number, y: number) { this.burst(x, y, "#ffe047", 18, 7); }
+  spawnEnemyLand(x: number, y: number) { this.dust(x + 17, y, 7); }
+  spawnEnemyAttackDust(x: number, y: number) { this.dust(x + 19, y, 9); }
+  spawnEnemyAlert(x: number, y: number) { this.burst(x + 17, y - 8, "#fff06a", 5, 2.5); }
+  spawnProjectileImpact(x: number, y: number) { this.burst(x, y, "#75f7e7", 9, 4); }
 
   private dust(x: number, y: number, count: number) {
     for (let index = 0; index < count; index++) {
