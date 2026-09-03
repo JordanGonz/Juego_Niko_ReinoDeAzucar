@@ -1,8 +1,17 @@
 # Niko y el Reino de Azúcar
 
 Juego de plataformas original creado con React 19, TypeScript, Canvas y Vinext.
-Incluye controles de teclado y táctiles, enemigos, monedas, puntuación, vidas y
+Incluye cuatro mundos conectados por un mapa con progreso guardado, controles de teclado y táctiles,
+enemigos con patrullas, corazones de vida, poderes de escudo y turbo,
+estrellas coleccionables, puntuación, puntos de reaparición seguros y
 diseño responsive para computadora y celular.
+
+## Capítulos
+
+1. Pradera de Gomitas
+2. Cañón de Caramelo
+3. Grutas de Chocolate
+4. Castillo de Cristal
 
 <img width="1652" height="863" alt="image" src="https://github.com/user-attachments/assets/98e7f6be-cc94-4efa-aa55-95916cbc6701" />
 
@@ -71,8 +80,16 @@ npm run start
 
 ## Archivos principales
 
-- `app/page.tsx`: lógica, físicas, escenario y componentes del juego.
-- `app/globals.css`: diseño visual y comportamiento responsive.
+- `app/page.tsx`: coordina el bucle principal y el renderizado Canvas.
+- `app/game/levels.ts`: mundos, plataformas, estrellas, objetos y enemigos.
+- `app/game/physics.ts`: colisiones, aterrizajes y patrullas.
+- `app/game/audio.ts`: efectos de sonido.
+- `app/game/types.ts`: tipos compartidos del juego.
+- `app/game/ui.tsx`: HUD, mapa, pantallas y controles táctiles.
+- `app/globals.css`: estilos base e importación de las hojas especializadas.
+- `app/styles/game-layout.css`: escenario, HUD y controles.
+- `app/styles/world-map.css`: mapa y selector de mundos.
+- `app/styles/responsive.css`: adaptación para celular y orientación horizontal.
 - `app/layout.tsx`: título y metadatos del sitio.
 - `.openai/hosting.json`: conexión con el despliegue de ChatGPT Sites.
 

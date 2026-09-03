@@ -1,0 +1,33 @@
+.game-shell { min-height:100vh; display:grid; grid-template-rows:auto 1fr auto; background:radial-gradient(circle at 10% 0%,#6d46d9 0,transparent 28%),radial-gradient(circle at 90% 0%,#ff547f 0,transparent 24%),#241047; }
+.topbar { width:min(1180px,94vw); margin:auto; min-height:96px; display:flex; align-items:center; justify-content:space-between; gap:24px; }
+.brand { display:flex; align-items:center; gap:12px; min-width:240px; }
+.brand-mark { display:grid; place-items:center; width:48px; height:48px; background:var(--yellow); color:var(--ink); font-weight:1000; font-size:28px; transform:rotate(-7deg); border-radius:14px 10px 14px 8px; box-shadow:5px 5px 0 var(--pink); }
+.brand strong { display:block; font-size:23px; line-height:.9; letter-spacing:2px; }
+.brand span:not(.brand-mark) { display:block; color:#d9c8ff; font-size:11px; font-weight:800; letter-spacing:1.4px; margin-top:5px; }
+.hud { display:flex; gap:28px; text-align:center; font-weight:1000; font-size:16px; letter-spacing:1px; }
+.hud small { display:block; color:#bda7e8; font-size:9px; letter-spacing:2px; margin-bottom:6px; }
+.hud span:nth-child(3) { color:var(--yellow); }
+.hud span:nth-child(4) { color:#ff5e8c; letter-spacing:4px; }
+.sound { width:42px; height:42px; border:1px solid #765a9e; border-radius:50%; background:#3c2163; color:white; cursor:pointer; font-size:19px; }
+.stage { width:min(1180px,94vw); aspect-ratio:16/9; max-height:calc(100vh - 165px); margin:auto; position:relative; border-radius:26px; overflow:hidden; border:4px solid rgba(255,255,255,.18); box-shadow:0 30px 80px #130628,inset 0 0 0 2px rgba(255,255,255,.12); background:#7457ff; }
+canvas { display:block; width:100%; height:100%; }
+.overlay { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; padding:7% 8%; background:linear-gradient(90deg,rgba(36,16,71,.97) 0%,rgba(36,16,71,.83) 40%,rgba(36,16,71,.05) 73%); }
+.eyebrow { color:var(--yellow); font-size:11px; font-weight:1000; letter-spacing:3px; margin-bottom:14px; }
+h1 { margin:0; font-size:clamp(54px,8vw,104px); line-height:.76; letter-spacing:-7px; text-transform:uppercase; font-weight:1000; text-shadow:6px 7px 0 rgba(0,0,0,.16); }
+h1 em { color:#ff4e88; font-style:normal; }
+.overlay p { width:min(430px,48%); color:#e6dafa; line-height:1.55; font-size:15px; font-weight:600; margin:28px 0 24px; }
+.play { border:0; background:var(--yellow); color:var(--ink); padding:17px 17px 17px 24px; border-radius:8px; font-weight:1000; letter-spacing:1.5px; cursor:pointer; box-shadow:0 8px 0 #d89c21,0 12px 25px rgba(0,0,0,.2); transition:.15s transform; }
+.play:hover { transform:translateY(-3px); }
+.play span { display:inline-grid; place-items:center; width:31px; height:31px; margin-left:17px; background:var(--ink); color:white; border-radius:6px; }
+.controls { margin-top:27px; font-size:10px; color:#bda7e8; font-weight:800; letter-spacing:1px; }
+kbd { display:inline-block; padding:6px 9px; color:white; border:1px solid #765a9e; border-bottom-width:3px; border-radius:5px; background:#3d2264; margin:0 4px; font-family:inherit; }
+footer { width:min(1180px,94vw); min-height:58px; margin:auto; display:flex; align-items:center; justify-content:space-between; font-size:9px; font-weight:900; letter-spacing:2px; color:#9d85c7; }
+footer b { color:white; font-size:11px; }
+.mobile-controls { display:none; position:absolute; left:18px; right:18px; bottom:18px; justify-content:space-between; align-items:flex-end; pointer-events:none; }
+.move-controls { display:flex; gap:10px; pointer-events:none; }
+.mobile-controls button { pointer-events:auto; width:58px; height:58px; border:2px solid rgba(255,255,255,.5); background:rgba(36,16,71,.72); color:white; border-radius:50%; font-size:25px; font-weight:900; touch-action:none; }
+.mobile-controls .jump { background:rgba(255,61,119,.82); border-color:#ffb3ca; }
+.power-badge { position:absolute; z-index:2; top:18px; left:18px; display:flex; align-items:center; gap:8px; padding:9px 14px; border:2px solid rgba(255,255,255,.7); border-radius:99px; background:rgba(36,16,71,.82); color:white; font-size:12px; font-weight:1000; letter-spacing:1.5px; box-shadow:0 7px 20px rgba(20,7,51,.35); }
+.power-badge span { display:grid; place-items:center; width:24px; height:24px; border-radius:50%; }
+.power-escudo span { background:#4bdcca; }
+.power-turbo span { background:#f4bd2e; }
