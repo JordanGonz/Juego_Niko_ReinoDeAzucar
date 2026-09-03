@@ -11,6 +11,7 @@ import { calculateParallaxOffset } from "../app/game/rendering/world/ParallaxLay
 import { selectWorldRendererId } from "../app/game/rendering/world/WorldRenderer.ts";
 import { MEADOW_BIOME } from "../app/game/rendering/world/biomes/meadow.ts";
 import { checkpointAtlasCell, isVisibleInCamera, meadowBackgroundMode, MEADOW_ASSET_MANIFEST, pickupAtlasCell } from "../app/game/rendering/world/meadowAssets.ts";
+import { ENEMY_ASSET_BY_TYPE, GLOBAL_ASSET_MANIFEST, WORLD_ASSETS, worldAssetManifest } from "../app/game/assets/gameAssets.ts";
 import { activateCheckpoint, checkpointTouchesPlayer, createCheckpoints, resolveRespawnPosition } from "../app/game/systems/CheckpointSystem.ts";
 import { createHazards, damagePlayerFromHazard, hazardHitsPlayer } from "../app/game/systems/HazardSystem.ts";
 
@@ -43,7 +44,7 @@ test("parallax calcula offsets proporcionales a cada profundidad",()=>{
 });
 
 test("WorldRenderer selecciona Pradera y conserva fallback legado",()=>{
-  assert.equal(selectWorldRendererId("meadow"),"meadow");assert.equal(selectWorldRendererId("cave"),"legacy");
+  assert.equal(selectWorldRendererId("meadow"),"meadow");assert.equal(selectWorldRendererId("cave"),"cave-assets");
 });
 
 test("collectibles mantienen bounds estables separados del dibujo",()=>{
@@ -89,4 +90,20 @@ test("los bounds del peligro conservan la geometría del nivel",()=>{
 
 test("coleccionables mantienen bounds y celdas por tipo",()=>{
   assert.deepEqual(pickupAtlasCell("heart"),{column:0,row:1});assert.deepEqual(pickupAtlasCell("shield"),{column:1,row:1});assert.deepEqual(pickupAtlasCell("boost"),{column:2,row:1});assert.deepEqual(coinBounds(100,80),{x:86,y:66,width:28,height:28});
+});
+
+test("los tres biomas finales registran manifests completos y lazy",()=>{
+  assert.equal(worldAssetManifest("meadow").length,0);for(const biome of ["canyon","cave","crystal"]){assert.equal(worldAssetManifest(biome).length,5);assert.ok(WORLD_ASSETS[biome].far.src.endsWith("far.png"));}
+});
+
+test("el manifiesto global incluye Niko, ocho enemigos, collectibles y proyectil",()=>{
+  assert.equal(Object.keys(ENEMY_ASSET_BY_TYPE).length,8);assert.equal(GLOBAL_ASSET_MANIFEST.length,11);assert.ok(GLOBAL_ASSET_MANIFEST.some((asset)=>asset.id==="character-niko"));
+});
+
+test("AssetManager reporta fallos y conserva fallback",async()=>{
+  const manager=new AssetManager(()=>{const fake={onload:null,onerror:null};Object.defineProperty(fake,"src",{set(){queueMicrotask(()=>fake.onerror());}});return fake;});const result=await manager.preload([{id:"missing",src:"/missing.png"}]);assert.equal(result[0].status,"rejected");assert.equal(manager.errors.length,1);assert.equal(manager.get("missing"),null);assert.equal(manager.progress,1);
+});
+
+test("AssetManager puede liberar assets de un mundo",async()=>{
+  const manager=new AssetManager(()=>{const fake={onload:null,onerror:null};Object.defineProperty(fake,"src",{set(){queueMicrotask(()=>fake.onload());}});return fake;});await manager.load("world","/world.png");assert.equal(manager.has("world"),true);manager.release(["world"]);assert.equal(manager.has("world"),false);
 });

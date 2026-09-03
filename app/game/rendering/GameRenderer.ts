@@ -4,17 +4,20 @@ import { projectileCollisionRect } from "../entities/Projectile";
 import { getEnemyDebugData } from "../enemies/debug";
 import { PlaceholderPlayerRenderer } from "./player/PlaceholderPlayerRenderer";
 import type { PlayerRenderer } from "./player/PlayerRenderer";
+import { SpritePlayerRenderer } from "./player/SpritePlayerRenderer.ts";
+import { SpriteEnemyRenderer } from "./enemy/SpriteEnemyRenderer.ts";
 import { EnemyRendererFactory } from "./enemy/EnemyRendererFactory";
 import { ProjectileRenderer } from "./enemy/ProjectileRenderer";
 import { WorldRenderer } from "./world/WorldRenderer";
 import { MEADOW_BIOME } from "./world/biomes/meadow";
 import type { RenderState } from "../types";
 import { AssetManager } from "../assets/AssetManager.ts";
-import { drawAtlasCell, MEADOW_ASSET_MANIFEST, MEADOW_ASSETS, pickupAtlasCell } from "./world/meadowAssets.ts";
+import { drawAtlasCell, isVisibleInCamera, MEADOW_ASSET_MANIFEST, pickupAtlasCell } from "./world/meadowAssets.ts";
+import { ENEMY_ASSET_BY_TYPE, GLOBAL_ASSET_MANIFEST, GLOBAL_ASSETS, worldAssetManifest } from "../assets/gameAssets.ts";
 
 export class GameRenderer {
   private readonly ctx: CanvasRenderingContext2D;
-  private readonly playerRenderer: PlayerRenderer = new PlaceholderPlayerRenderer();
+  private playerRenderer: PlayerRenderer = new PlaceholderPlayerRenderer();
   private readonly enemyRenderers = new EnemyRendererFactory();
   private readonly projectileRenderer = new ProjectileRenderer();
   private readonly worldRenderer = new WorldRenderer();
@@ -22,6 +25,8 @@ export class GameRenderer {
   private logicalWidth = 960;
   private readonly logicalHeight = 540;
   private pixelRatio = 1;
+  private globalReady=false;
+  private readonly requestedBiomes=new Set<string>();
 
   get viewportWidth() { return this.logicalWidth; }
 
@@ -29,7 +34,7 @@ export class GameRenderer {
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Canvas 2D no está disponible");
     this.ctx = context;
-    void this.assets.preload(MEADOW_ASSET_MANIFEST);
+    void this.assets.preload([...GLOBAL_ASSET_MANIFEST,...MEADOW_ASSET_MANIFEST]).then(()=>this.configureGlobalSprites()).finally(()=>{this.globalReady=true;});
   }
 
   resize() {
@@ -48,6 +53,7 @@ export class GameRenderer {
     const { level, cameraX, tick } = view;
     const width = this.logicalWidth;
     const height = this.logicalHeight;
+    this.ensureBiomeAssets(level.biome);
     ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
     const world=this.worldRenderer.get(view);
     const worldContext=this.worldRenderer.context(ctx,view,width,height,this.assets);
@@ -56,9 +62,9 @@ export class GameRenderer {
     world.renderPlatforms(worldContext);
     world.renderGameplay(worldContext);
 
-    const gameplayAtlas=level.biome==="meadow"?this.assets.get(MEADOW_ASSETS.gameplay.id):null;
+    const gameplayAtlas=this.assets.get(GLOBAL_ASSETS.collectibles.id);
     view.coins.forEach((coin, index) => {
-      if (coin.taken) return;
+      if (coin.taken||!isVisibleInCamera(coin.x,30,cameraX,width)) return;
       const pulse = 1 + Math.sin(tick * 0.12 + index) * 0.09;
       const turn=.58+.42*Math.abs(Math.cos(tick*.055+index));
       ctx.save();ctx.globalAlpha=.22;ctx.fillStyle="#392b50";ctx.beginPath();ctx.ellipse(coin.x,coin.y+19,13,4,0,0,Math.PI*2);ctx.fill();ctx.restore();
@@ -74,7 +80,7 @@ export class GameRenderer {
     });
 
     view.pickups.forEach((pickup, index) => {
-      if (pickup.taken) return;
+      if (pickup.taken||!isVisibleInCamera(pickup.x,44,cameraX,width)) return;
       const bob = Math.sin(tick * 0.09 + index) * 5;
       ctx.save();ctx.globalAlpha=.2;ctx.fillStyle="#352647";ctx.beginPath();ctx.ellipse(pickup.x,pickup.y+25,17,5,0,0,Math.PI*2);ctx.fill();ctx.restore();
       ctx.save(); ctx.translate(pickup.x, pickup.y + bob);
@@ -90,14 +96,14 @@ export class GameRenderer {
     });
 
     ctx.save();ctx.fillStyle="rgba(45,34,57,.24)";
-    view.enemies.forEach((enemy)=>{if(!enemy.alive)return;ctx.beginPath();ctx.ellipse(enemy.x+enemy.collisionBounds.width/2,enemy.platformY+3,enemy.visualBounds.width*.36,5,0,0,Math.PI*2);ctx.fill();});
+    view.enemies.forEach((enemy)=>{if(!enemy.alive||!isVisibleInCamera(enemy.x,enemy.visualBounds.width,cameraX,width))return;ctx.beginPath();ctx.ellipse(enemy.x+enemy.collisionBounds.width/2,enemy.platformY+3,enemy.visualBounds.width*.36,5,0,0,Math.PI*2);ctx.fill();});
     ctx.beginPath();ctx.ellipse(view.player.x+15,view.player.y+view.player.collisionBounds.height+4,18,5,0,0,Math.PI*2);ctx.fill();ctx.restore();
 
     view.enemies.forEach((enemy) => {
-      if (!enemy.alive) return;
+      if (!enemy.alive||!isVisibleInCamera(enemy.x,enemy.visualBounds.width,cameraX,width)) return;
       this.enemyRenderers.get(enemy.type).render({ ctx, enemy, tick });
     });
-    view.projectiles.forEach((projectile) => this.projectileRenderer.render(ctx, projectile));
+    view.projectiles.forEach((projectile) => {if(isVisibleInCamera(projectile.x,projectile.visualBounds.width,cameraX,width))this.projectileRenderer.render(ctx, projectile);});
 
     const goalX = level.width - 150;
     ctx.fillStyle = "#ffda3d"; ctx.fillRect(goalX, 235, 14, 223);
@@ -120,6 +126,7 @@ export class GameRenderer {
     ctx.restore();
 
     if (view.state === "finishing") this.drawFinish(view);
+    if(!this.globalReady)this.drawLoading();
 
     const vignette = ctx.createRadialGradient(width / 2, height / 2, 190, width / 2, height / 2, 650);
     vignette.addColorStop(0.55, "rgba(26,12,58,0)"); vignette.addColorStop(1, level.biome === "meadow" ? "rgba(28,86,76,.18)" : "rgba(26,12,58,.34)");
@@ -127,6 +134,14 @@ export class GameRenderer {
 
     if (view.debug) this.drawDebug(view);
   }
+
+  private configureGlobalSprites(){
+    const niko=this.assets.get(GLOBAL_ASSETS.niko.id);if(niko)this.playerRenderer=new SpritePlayerRenderer({image:niko,frameWidth:niko.naturalWidth/7,frameHeight:niko.naturalHeight/4,columns:7,pivotX:niko.naturalWidth/14,pivotY:niko.naturalHeight/4*.96,scale:.25});
+    (Object.entries(ENEMY_ASSET_BY_TYPE) as [keyof typeof ENEMY_ASSET_BY_TYPE,(typeof ENEMY_ASSET_BY_TYPE)[keyof typeof ENEMY_ASSET_BY_TYPE]][]).forEach(([type,asset])=>{const image=this.assets.get(asset.id);if(image)this.enemyRenderers.register(type,new SpriteEnemyRenderer(image,image.naturalWidth/6,image.naturalHeight));});
+    const projectile=this.assets.get(GLOBAL_ASSETS.projectile.id);if(projectile)this.projectileRenderer.setSprite(projectile);
+  }
+  private ensureBiomeAssets(biome:RenderState["level"]["biome"]){if(biome==="meadow"||this.requestedBiomes.has(biome))return;this.requestedBiomes.add(biome);void this.assets.preload(worldAssetManifest(biome));}
+  private drawLoading(){const {ctx}=this;ctx.save();ctx.fillStyle="rgba(23,11,52,.84)";ctx.fillRect(0,0,this.logicalWidth,this.logicalHeight);ctx.textAlign="center";ctx.fillStyle="#fff";ctx.font="1000 42px Arial";ctx.fillText("NIKO",this.logicalWidth/2,230);ctx.fillStyle="#ffe047";ctx.font="800 17px Arial";ctx.fillText("Cargando aventura...",this.logicalWidth/2,265);ctx.fillStyle="rgba(255,255,255,.2)";ctx.fillRect(this.logicalWidth/2-130,286,260,9);ctx.fillStyle="#39d8cf";ctx.fillRect(this.logicalWidth/2-130,286,260*this.assets.progress,9);ctx.restore();}
 
   private drawFinish(view: RenderState) {
     const { ctx } = this;
