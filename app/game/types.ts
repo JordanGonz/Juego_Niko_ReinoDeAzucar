@@ -2,8 +2,12 @@ export type GameState = "ready" | "map" | "playing" | "finishing" | "won" | "los
 export type Biome = "meadow" | "canyon" | "cave" | "crystal";
 export type PickupType = "heart" | "shield" | "boost";
 export type GamePower = "" | "ESCUDO" | "TURBO";
+export type Facing = -1 | 1;
+export type PlayerState = "idle" | "run" | "jumpStart" | "jumpUp" | "fall" | "land" | "skid" | "hurt" | "death" | "victory";
 export type Platform = readonly [x: number, y: number, width: number, height: number];
 export type EnemySeed = readonly [x: number, platformIndex: number];
+export type Bounds = { offsetX: number; offsetY: number; width: number; height: number };
+export type Rect = { x: number; y: number; width: number; height: number };
 
 export type Level = {
   name: string;
@@ -20,8 +24,19 @@ export type Level = {
 };
 
 export type Player = {
-  x: number; y: number; w: number; h: number;
-  vx: number; vy: number; grounded: boolean; facing: number; inv: number;
+  x: number; y: number; vx: number; vy: number;
+  grounded: boolean; facing: Facing; inv: number;
+  collisionBounds: Bounds;
+  visualBounds: Bounds;
+  state: PlayerState;
+  animationState: PlayerState;
+  coyoteTimer: number;
+  jumpBufferTimer: number;
+  jumpStartTimer: number;
+  landingTimer: number;
+  skidTimer: number;
+  hurtTimer: number;
+  runDustTimer: number;
 };
 
 export type RuntimeEnemy = {
@@ -29,7 +44,7 @@ export type RuntimeEnemy = {
 };
 
 export type Particle = {
-  x: number; y: number; vx: number; vy: number; life: number; color: string;
+  x: number; y: number; vx: number; vy: number; life: number; color: string; size?: number;
 };
 
 export type RuntimeCoin = { x: number; y: number; taken: boolean };
@@ -59,4 +74,6 @@ export type RenderState = {
   finishTimer: number;
   debug: boolean;
   fps: number;
+  fixedUpdateRate: number;
+  animationFrame: number;
 };
