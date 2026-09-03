@@ -9,6 +9,8 @@ import { ProjectileRenderer } from "./enemy/ProjectileRenderer";
 import { WorldRenderer } from "./world/WorldRenderer";
 import { MEADOW_BIOME } from "./world/biomes/meadow";
 import type { RenderState } from "../types";
+import { AssetManager } from "../assets/AssetManager.ts";
+import { drawAtlasCell, MEADOW_ASSET_MANIFEST, MEADOW_ASSETS, pickupAtlasCell } from "./world/meadowAssets.ts";
 
 export class GameRenderer {
   private readonly ctx: CanvasRenderingContext2D;
@@ -16,6 +18,7 @@ export class GameRenderer {
   private readonly enemyRenderers = new EnemyRendererFactory();
   private readonly projectileRenderer = new ProjectileRenderer();
   private readonly worldRenderer = new WorldRenderer();
+  private readonly assets = new AssetManager();
   private logicalWidth = 960;
   private readonly logicalHeight = 540;
   private pixelRatio = 1;
@@ -26,6 +29,7 @@ export class GameRenderer {
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Canvas 2D no está disponible");
     this.ctx = context;
+    void this.assets.preload(MEADOW_ASSET_MANIFEST);
   }
 
   resize() {
@@ -46,18 +50,20 @@ export class GameRenderer {
     const height = this.logicalHeight;
     ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
     const world=this.worldRenderer.get(view);
-    const worldContext=this.worldRenderer.context(ctx,view,width,height);
+    const worldContext=this.worldRenderer.context(ctx,view,width,height,this.assets);
     world.renderBackground(worldContext);
     ctx.save(); ctx.translate(-cameraX, 0);
     world.renderPlatforms(worldContext);
     world.renderGameplay(worldContext);
 
+    const gameplayAtlas=level.biome==="meadow"?this.assets.get(MEADOW_ASSETS.gameplay.id):null;
     view.coins.forEach((coin, index) => {
       if (coin.taken) return;
       const pulse = 1 + Math.sin(tick * 0.12 + index) * 0.09;
       const turn=.58+.42*Math.abs(Math.cos(tick*.055+index));
       ctx.save();ctx.globalAlpha=.22;ctx.fillStyle="#392b50";ctx.beginPath();ctx.ellipse(coin.x,coin.y+19,13,4,0,0,Math.PI*2);ctx.fill();ctx.restore();
       ctx.save(); ctx.translate(coin.x, coin.y); ctx.scale(turn,pulse);
+      if(gameplayAtlas){drawAtlasCell(ctx,gameplayAtlas,{column:3,row:0},5,2,-25,-38,50,76);ctx.restore();return;}
       ctx.shadowColor = "#fff6a0"; ctx.shadowBlur = 20;
       ctx.fillStyle="#ffd43b";
       ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2); ctx.fill();ctx.shadowBlur=0;
@@ -72,6 +78,7 @@ export class GameRenderer {
       const bob = Math.sin(tick * 0.09 + index) * 5;
       ctx.save();ctx.globalAlpha=.2;ctx.fillStyle="#352647";ctx.beginPath();ctx.ellipse(pickup.x,pickup.y+25,17,5,0,0,Math.PI*2);ctx.fill();ctx.restore();
       ctx.save(); ctx.translate(pickup.x, pickup.y + bob);
+      if(gameplayAtlas){drawAtlasCell(ctx,gameplayAtlas,pickupAtlasCell(pickup.type),5,2,-31,-42,62,84);ctx.restore();return;}
       ctx.shadowColor = pickup.type === "heart" ? "#ff557c" : pickup.type === "shield" ? "#75f7e7" : "#ffe047";
       ctx.shadowBlur = 22;
       const orb=ctx.createRadialGradient(-6,-7,2,0,0,21);orb.addColorStop(0,"#625287");orb.addColorStop(1,"#251341");ctx.fillStyle=orb;ctx.beginPath();ctx.arc(0,0,20,0,Math.PI*2);ctx.fill();

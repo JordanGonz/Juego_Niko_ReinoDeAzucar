@@ -4,6 +4,7 @@ import { DecorationRenderer } from "./DecorationRenderer.ts";
 import { TileRenderer } from "./TileRenderer.ts";
 import { MEADOW_BIOME } from "./biomes/meadow.ts";
 import type { BiomeRenderer, WorldRenderContext } from "./types";
+import { checkpointAtlasCell, drawAtlasCell, isVisibleInCamera, meadowBackgroundMode, MEADOW_ASSETS } from "./meadowAssets.ts";
 
 function cloud(ctx:CanvasRenderingContext2D,x:number,y:number,scale:number,alpha:number){
   ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.globalAlpha=alpha;ctx.fillStyle="#fff";ctx.beginPath();
@@ -20,7 +21,15 @@ function spike(ctx:CanvasRenderingContext2D,x:number,y:number,width:number){
 export class MeadowBiomeRenderer implements BiomeRenderer{
   readonly id="meadow";private readonly tiles=new TileRenderer();private readonly decorations=new DecorationRenderer();
   private skyGradient:CanvasGradient|null=null;private sunGradient:CanvasGradient|null=null;private gradientWidth=0;private gradientHeight=0;
-  renderBackground({ctx,view,width,height}:WorldRenderContext){
+  renderBackground({ctx,view,width,height,assets}:WorldRenderContext){
+    const background=assets.get(MEADOW_ASSETS.background.id);
+    if(meadowBackgroundMode(background)==="asset"){
+      const sourceRatio=width/height,imageRatio=background!.naturalWidth/background!.naturalHeight;
+      const sourceWidth=imageRatio>sourceRatio?background!.naturalHeight*sourceRatio:background!.naturalWidth;
+      const sourceHeight=imageRatio>sourceRatio?background!.naturalHeight:background!.naturalWidth/sourceRatio;
+      const sourceX=(background!.naturalWidth-sourceWidth)/2,sourceY=Math.max(0,(background!.naturalHeight-sourceHeight)*.2);
+      ctx.drawImage(background!,sourceX,sourceY,sourceWidth,sourceHeight,0,0,width,height);
+    }else{
     if(!this.skyGradient||this.gradientWidth!==width||this.gradientHeight!==height){
       this.skyGradient=ctx.createLinearGradient(0,0,0,height);this.skyGradient.addColorStop(0,MEADOW_BIOME.sky[0]);this.skyGradient.addColorStop(.72,MEADOW_BIOME.sky[1]);this.skyGradient.addColorStop(1,"#f5f1b7");
       this.sunGradient=ctx.createRadialGradient(width*.78,82,6,width*.78,82,74);this.sunGradient.addColorStop(0,"rgba(255,249,188,.95)");this.sunGradient.addColorStop(1,"rgba(255,238,143,0)");this.gradientWidth=width;this.gradientHeight=height;
@@ -29,23 +38,28 @@ export class MeadowBiomeRenderer implements BiomeRenderer{
     const far=calculateParallaxOffset(view.cameraX,.1);for(let i=0;i<7;i++){const x=repeatPosition(-150,250,i,far,1750);hill(ctx,x,FLOOR+8,310,185+(i%3)*18,MEADOW_BIOME.colors.far);}
     const mid=calculateParallaxOffset(view.cameraX,.23);for(let i=0;i<7;i++){const x=repeatPosition(-180,285,i,mid,1995);hill(ctx,x,FLOOR+12,360,135+(i%2)*28,MEADOW_BIOME.colors.mid);}
     for(let i=0;i<8;i++)cloud(ctx,repeatPosition(-80,220,i,calculateParallaxOffset(view.cameraX,i%2?.08:.14),1760),65+(i%3)*55,.62+(i%2)*.2,.55+(i%3)*.12);
-    ctx.save();ctx.translate(calculateParallaxOffset(view.cameraX,.23),0);this.decorations.renderLayer(ctx,view.level,"backgroundMid",view.tick);ctx.restore();
-    ctx.save();ctx.translate(calculateParallaxOffset(view.cameraX,.42),0);this.decorations.renderLayer(ctx,view.level,"backgroundNear",view.tick);ctx.restore();
     ctx.fillStyle="rgba(42,127,83,.34)";ctx.fillRect(0,FLOOR,width,height-FLOOR);
+    }
+    const decorations=assets.get(MEADOW_ASSETS.decorations.id);
+    ctx.save();ctx.translate(calculateParallaxOffset(view.cameraX,.23),0);this.decorations.renderLayer(ctx,view.level,"backgroundMid",view.tick,decorations,view.cameraX*.23,width);ctx.restore();
+    ctx.save();ctx.translate(calculateParallaxOffset(view.cameraX,.42),0);this.decorations.renderLayer(ctx,view.level,"backgroundNear",view.tick,decorations,view.cameraX*.42,width);ctx.restore();
     this.renderAmbient(ctx,view.tick,width,height);
   }
   renderPlatforms(context:WorldRenderContext){this.tiles.render(context,MEADOW_BIOME);}
-  renderGameplay({ctx,view}:WorldRenderContext){
-    this.decorations.renderLayer(ctx,view.level,"gameplay",view.tick);
+  renderGameplay({ctx,view,assets,width}:WorldRenderContext){
+    const decorations=assets.get(MEADOW_ASSETS.decorations.id),gameplay=assets.get(MEADOW_ASSETS.gameplay.id);
+    this.decorations.renderLayer(ctx,view.level,"gameplay",view.tick,decorations,view.cameraX,width);
     view.checkpoints.forEach((checkpoint)=>{
+      if(!isVisibleInCamera(checkpoint.x,80,view.cameraX,width))return;
+      if(gameplay){drawAtlasCell(ctx,gameplay,checkpointAtlasCell(checkpoint.activated),5,2,checkpoint.x-49,checkpoint.y-44,104,104);return;}
       ctx.save();ctx.translate(checkpoint.x,checkpoint.y);ctx.shadowColor=checkpoint.activated?"#ffe25a":"rgba(40,30,70,.25)";ctx.shadowBlur=checkpoint.activated?18:5;
       ctx.fillStyle="#e0b447";ctx.fillRect(-3,0,6,58);ctx.fillStyle=checkpoint.activated?"#22cbbd":"#5a93a2";ctx.beginPath();ctx.moveTo(3,5);ctx.quadraticCurveTo(25,11,38,3);ctx.lineTo(38,26);ctx.quadraticCurveTo(23,32,3,24);ctx.closePath();ctx.fill();
       ctx.fillStyle="#ffe35b";ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?4:9;ctx.lineTo(20+Math.cos(a)*r,15+Math.sin(a)*r);}ctx.closePath();ctx.fill();ctx.restore();
     });
-    view.hazards.forEach((hazard)=>spike(ctx,hazard.x,hazard.y,hazard.width));
+    view.hazards.forEach((hazard)=>{if(!isVisibleInCamera(hazard.x,hazard.width,view.cameraX,width))return;if(gameplay)drawAtlasCell(ctx,gameplay,{column:2,row:0},5,2,hazard.x-12,hazard.y-45,hazard.width+24,70);else spike(ctx,hazard.x,hazard.y,hazard.width);});
   }
-  renderForeground({ctx,view}:WorldRenderContext){
-    ctx.save();ctx.translate(-view.cameraX*.1,0);ctx.globalAlpha=.68;this.decorations.renderLayer(ctx,view.level,"foreground",view.tick);ctx.restore();
+  renderForeground({ctx,view,assets,width}:WorldRenderContext){
+    ctx.save();ctx.translate(-view.cameraX*.1,0);ctx.globalAlpha=.68;this.decorations.renderLayer(ctx,view.level,"foreground",view.tick,assets.get(MEADOW_ASSETS.decorations.id),view.cameraX*1.1,width);ctx.restore();
   }
   private renderAmbient(ctx:CanvasRenderingContext2D,tick:number,width:number,height:number){
     for(let i=0;i<MEADOW_BIOME.ambientParticleCount;i++){const x=(i*127+tick*(i%3+1)*.08)%width,y=70+(i*83)%Math.max(120,height-170)+Math.sin(tick*.018+i)*7;ctx.globalAlpha=.18+(i%4)*.07;ctx.fillStyle=i%3?"#fffbd0":"#ffd0e7";ctx.beginPath();ctx.arc(x,y,1.4+(i%2),0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;

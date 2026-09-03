@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { AssetManager } from "../app/game/assets/AssetManager.ts";
 import { coinBounds, pickupBounds } from "../app/game/entities/Collectible.ts";
 import { createPlayer } from "../app/game/entities/Player.ts";
@@ -8,6 +10,7 @@ import { resolveDecorationY } from "../app/game/rendering/world/DecorationRender
 import { calculateParallaxOffset } from "../app/game/rendering/world/ParallaxLayer.ts";
 import { selectWorldRendererId } from "../app/game/rendering/world/WorldRenderer.ts";
 import { MEADOW_BIOME } from "../app/game/rendering/world/biomes/meadow.ts";
+import { checkpointAtlasCell, isVisibleInCamera, meadowBackgroundMode, MEADOW_ASSET_MANIFEST, pickupAtlasCell } from "../app/game/rendering/world/meadowAssets.ts";
 import { activateCheckpoint, checkpointTouchesPlayer, createCheckpoints, resolveRespawnPosition } from "../app/game/systems/CheckpointSystem.ts";
 import { createHazards, damagePlayerFromHazard, hazardHitsPlayer } from "../app/game/systems/HazardSystem.ts";
 
@@ -55,4 +58,35 @@ test("AssetManager reutiliza recursos y promesas existentes",async()=>{
   let creations=0;
   const manager=new AssetManager(()=>{creations++;const fake={onload:null,onerror:null,_src:""};Object.defineProperty(fake,"src",{set(value){fake._src=value;queueMicrotask(()=>fake.onload());}});return fake;});
   const first=manager.load("tiles","/tiles.png"),second=manager.load("tiles","/tiles.png");assert.equal(first,second);const loaded=await first;assert.equal(creations,1);assert.equal(manager.get("tiles"),loaded);await manager.load("tiles","/tiles.png");assert.equal(creations,1);
+});
+
+test("el manifiesto declara cuatro assets de pradera presentes",()=>{
+  assert.equal(MEADOW_ASSET_MANIFEST.length,4);
+  MEADOW_ASSET_MANIFEST.forEach(({src})=>assert.equal(existsSync(resolve(`public${src}`)),true));
+});
+
+test("AssetManager precarga el manifiesto sin recrear imágenes",async()=>{
+  let creations=0;const manager=new AssetManager(()=>{creations++;const fake={onload:null,onerror:null};Object.defineProperty(fake,"src",{set(){queueMicrotask(()=>fake.onload());}});return fake;});
+  const results=await manager.preload(MEADOW_ASSET_MANIFEST);assert.equal(results.every((item)=>item.status==="fulfilled"),true);assert.equal(creations,4);
+  await manager.preload(MEADOW_ASSET_MANIFEST);assert.equal(creations,4);
+});
+
+test("Pradera selecciona asset cargado o fallback Canvas",()=>{
+  assert.equal(meadowBackgroundMode(null),"fallback");assert.equal(meadowBackgroundMode({}),"asset");
+});
+
+test("el culling conserva objetos cercanos y omite los lejanos",()=>{
+  assert.equal(isVisibleInCamera(900,80,800,960),true);assert.equal(isVisibleInCamera(2100,80,800,960),false);assert.equal(isVisibleInCamera(700,80,800,960),true);
+});
+
+test("checkpoint activo e inactivo usan celdas visuales distintas",()=>{
+  assert.deepEqual(checkpointAtlasCell(false),{column:0,row:0});assert.deepEqual(checkpointAtlasCell(true),{column:1,row:0});
+});
+
+test("los bounds del peligro conservan la geometría del nivel",()=>{
+  const seed=LEVELS[0].hazards[0],hazard=createHazards(LEVELS[0])[0];assert.equal(hazard.x,seed.x);assert.equal(hazard.width,seed.width);assert.ok(hazard.height>0);assert.equal(hazard.damage,seed.damage);
+});
+
+test("coleccionables mantienen bounds y celdas por tipo",()=>{
+  assert.deepEqual(pickupAtlasCell("heart"),{column:0,row:1});assert.deepEqual(pickupAtlasCell("shield"),{column:1,row:1});assert.deepEqual(pickupAtlasCell("boost"),{column:2,row:1});assert.deepEqual(coinBounds(100,80),{x:86,y:66,width:28,height:28});
 });

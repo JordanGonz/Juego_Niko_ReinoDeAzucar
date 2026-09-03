@@ -1,13 +1,18 @@
 import type { DecorationSeed, Level } from "../../types";
+import { decorationAtlasCell, drawAtlasCell, isVisibleInCamera } from "./meadowAssets.ts";
 
 function circle(ctx:CanvasRenderingContext2D,x:number,y:number,r:number,color:string){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
 export function resolveDecorationY(item:DecorationSeed,level:Level){return item.platformIndex===undefined?(item.y??458):level.platforms[item.platformIndex][1];}
 
 export class DecorationRenderer{
-  render(ctx:CanvasRenderingContext2D,level:Level,item:DecorationSeed,tick:number){
+  render(ctx:CanvasRenderingContext2D,level:Level,item:DecorationSeed,tick:number,atlas:HTMLImageElement|null){
     const y=resolveDecorationY(item,level),s=item.scale??1,v=item.variant??0;ctx.save();ctx.translate(item.x,y);
     if(item.type==="grass"||item.type==="tree")ctx.rotate(Math.sin(tick*.025+item.x*.01)*.008);
     ctx.scale(s,s);
+    if(atlas){
+      const sizes={tree:[150,190],bush:[120,82],flowerPatch:[105,72],rock:[100,78],grass:[95,72],mushroom:[92,82]} as const;
+      const [width,height]=sizes[item.type];drawAtlasCell(ctx,atlas,decorationAtlasCell(item.type,v),4,2,-width/2,-height,width,height);ctx.restore();return;
+    }
     if(item.type==="tree"){
       ctx.fillStyle="#92543d";ctx.beginPath();ctx.roundRect(-10,-86,20,88,9);ctx.fill();ctx.fillStyle="#b96b48";ctx.fillRect(-4,-78,5,68);
       circle(ctx,-24,-93,29,v%2?"#52bb70":"#45ad68");circle(ctx,18,-101,34,v%3?"#62ca73":"#55bd69");circle(ctx,0,-125,31,"#70d67b");circle(ctx,-7,-135,10,"rgba(255,255,180,.22)");
@@ -24,7 +29,7 @@ export class DecorationRenderer{
     }
     ctx.restore();
   }
-  renderLayer(ctx:CanvasRenderingContext2D,level:Level,layer:DecorationSeed["layer"],tick:number){
-    (level.decorations??[]).filter((item)=>item.layer===layer).forEach((item)=>this.render(ctx,level,item,tick));
+  renderLayer(ctx:CanvasRenderingContext2D,level:Level,layer:DecorationSeed["layer"],tick:number,atlas:HTMLImageElement|null,cameraX:number,viewportWidth:number){
+    (level.decorations??[]).filter((item)=>item.layer===layer&&isVisibleInCamera(item.x,190*(item.scale??1),cameraX,viewportWidth)).forEach((item)=>this.render(ctx,level,item,tick,atlas));
   }
 }
