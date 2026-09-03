@@ -14,6 +14,11 @@ export type EnemySeed = {
   facing?: Facing;
   patrolRange?: number;
 };
+export type DecorationType = "flowerPatch" | "bush" | "tree" | "rock" | "grass" | "mushroom";
+export type DecorationLayer = "backgroundMid" | "backgroundNear" | "gameplay" | "foreground";
+export type DecorationSeed = { type:DecorationType; x:number; y?:number; platformIndex?:number; layer:DecorationLayer; scale?:number; variant?:number };
+export type CheckpointSeed = { id:string; x:number; platformIndex:number };
+export type HazardSeed = { id:string; type:"spikes"; x:number; platformIndex:number; width:number; damage:number };
 export type Bounds = { offsetX: number; offsetY: number; width: number; height: number };
 export type Rect = { x: number; y: number; width: number; height: number };
 
@@ -29,6 +34,9 @@ export type Level = {
   coins: readonly (readonly [number, number])[];
   pickups: readonly (readonly [x: number, y: number, type: PickupType])[];
   enemies: readonly EnemySeed[];
+  decorations?: readonly DecorationSeed[];
+  checkpoints?: readonly CheckpointSeed[];
+  hazards?: readonly HazardSeed[];
 };
 
 export type Player = {
@@ -81,6 +89,8 @@ export type Particle = {
 
 export type RuntimeCoin = { x: number; y: number; taken: boolean };
 export type RuntimePickup = { x: number; y: number; type: PickupType; taken: boolean };
+export type RuntimeCheckpoint = { id:string; x:number; y:number; spawnX:number; spawnY:number; activated:boolean };
+export type RuntimeHazard = { id:string; type:"spikes"; x:number; y:number; width:number; height:number; damage:number };
 
 export type GameEvent =
   | { type: "stateChanged"; value: GameState }
@@ -100,6 +110,8 @@ export type RenderState = {
   projectiles: readonly RuntimeProjectile[];
   coins: readonly RuntimeCoin[];
   pickups: readonly RuntimePickup[];
+  checkpoints: readonly RuntimeCheckpoint[];
+  hazards: readonly RuntimeHazard[];
   particles: readonly Particle[];
   activePower: GamePower;
   cameraX: number;

@@ -14,7 +14,9 @@ import { movementForLevel } from "../physics/tuning";
 import { GameRenderer } from "../rendering/GameRenderer";
 import { ParticleSystem } from "../systems/ParticleSystem";
 import { damagePlayerFromProjectile, ProjectileSystem } from "../systems/ProjectileSystem";
-import type { GameEvent, GamePower, GameState, Player, PlayerState, RuntimeCoin, RuntimeEnemy, RuntimePickup } from "../types";
+import { activateCheckpoint, checkpointTouchesPlayer, createCheckpoints, resolveRespawnPosition } from "../systems/CheckpointSystem";
+import { createHazards, damagePlayerFromHazard, hazardHitsPlayer } from "../systems/HazardSystem";
+import type { GameEvent, GamePower, GameState, Player, PlayerState, RuntimeCheckpoint, RuntimeCoin, RuntimeEnemy, RuntimeHazard, RuntimePickup } from "../types";
 import { FIXED_UPDATE_RATE, GameLoop } from "./GameLoop";
 import { InputManager } from "./InputManager";
 import { createInitialSession, nextUnlockedLevel } from "./session";
@@ -46,6 +48,8 @@ export class Game {
   private finishTarget: "map" | "won" = "map";
   private coinList: RuntimeCoin[] = this.level.coins.map(([x, y]) => ({ x, y, taken: false }));
   private pickupList: RuntimePickup[] = this.level.pickups.map(([x, y, type]) => ({ x, y, type, taken: false }));
+  private checkpoints: RuntimeCheckpoint[] = createCheckpoints(this.level);
+  private hazards: RuntimeHazard[] = createHazards(this.level);
   private enemies: RuntimeEnemy[] = createEnemies(this.level);
   private command: GameCommand | null = null;
   private sound = true;
@@ -121,6 +125,8 @@ export class Game {
     this.activePower = ""; this.powerTimer = 0; this.emit({ type: "powerChanged", value: "" });
     this.coinList = this.level.coins.map(([x, y]) => ({ x, y, taken: false }));
     this.pickupList = this.level.pickups.map(([x, y, type]) => ({ x, y, type, taken: false }));
+    this.checkpoints = createCheckpoints(this.level);
+    this.hazards = createHazards(this.level);
     this.enemies = createEnemies(this.level);
     this.particles.clear();
     this.projectiles.clear();
@@ -205,7 +211,7 @@ export class Game {
       this.particles.spawnLandDust(this.player, hardLanding);
       if (hardLanding) this.camera.impulse(1.4, 4);
     }
-    if (landing && landing.y === FLOOR && landing.footCenter > landing.x + 42 && landing.footCenter < landing.x + landing.width - 42) {
+    if (landing && !this.checkpoints.some((checkpoint)=>checkpoint.activated) && landing.y === FLOOR && landing.footCenter > landing.x + 42 && landing.footCenter < landing.x + landing.width - 42) {
       this.lastSafe = {
         x: Math.max(landing.x + 24, Math.min(landing.x + landing.width - this.player.collisionBounds.width - 24, this.player.x)),
         y: landing.y - this.player.collisionBounds.height,
@@ -219,6 +225,8 @@ export class Game {
 
     this.collectCoins();
     this.collectPickups();
+    this.updateCheckpoints();
+    this.updateHazards(config.hurtDuration);
     this.updateEnemies(config.hurtDuration);
     this.projectiles.update(this.level.width);
     const projectileHit = this.player.inv <= 0 ? this.projectiles.consumePlayerHit(this.player) : null;
@@ -290,6 +298,22 @@ export class Game {
     });
   }
 
+  private updateCheckpoints() {
+    this.checkpoints.forEach((checkpoint)=>{
+      if(checkpoint.activated || !checkpointTouchesPlayer(checkpoint,this.player))return;
+      this.lastSafe=activateCheckpoint(this.checkpoints,checkpoint);
+      this.particles.burst(checkpoint.x,checkpoint.y+18,"#75f7e7",22,5);this.beep(760,.18);
+    });
+  }
+
+  private updateHazards(hurtDuration:number) {
+    if(this.player.inv>0)return;
+    const hazard=this.hazards.find((item)=>hazardHitsPlayer(item,this.player));if(!hazard)return;
+    const damage=damagePlayerFromHazard(this.player,hazard);
+    this.particles.spawnProjectileImpact(this.player.x+15,hazard.y);this.camera.impulse(1.6,4);
+    this.hurtPlayer(damage,this.player.vx<0?-1:1,hurtDuration,true);
+  }
+
   private hurtPlayer(damage: number, knockbackDirection: number, hurtDuration: number, alreadyKnockedBack = false) {
     if (!alreadyKnockedBack) {
       this.player.inv = 100; this.player.vy = -8; this.player.vx = knockbackDirection * 7;
@@ -308,7 +332,8 @@ export class Game {
   private loseLife() {
     this.setLives(this.lives - 1); this.beep(90, 0.2);
     if (this.lives <= 0) { this.setState("lost"); return; }
-    this.player.x = this.lastSafe.x; this.player.y = this.lastSafe.y - 8;
+    const respawn=resolveRespawnPosition(this.lastSafe,this.checkpoints);
+    this.player.x = respawn.x; this.player.y = respawn.y - 8;
     this.player.vx = 0; this.player.vy = 0; this.player.inv = 90;
     this.player.hurtTimer = movementForLevel(this.level).hurtDuration;
     this.camera.respawn(this.player.x, this.level.width, this.renderer.viewportWidth);
@@ -356,6 +381,8 @@ export class Game {
       projectiles: this.projectiles.projectiles,
       coins: this.coinList,
       pickups: this.pickupList,
+      checkpoints: this.checkpoints,
+      hazards: this.hazards,
       particles: this.particles.particles,
       activePower: this.activePower,
       cameraX: this.camera.renderX,
