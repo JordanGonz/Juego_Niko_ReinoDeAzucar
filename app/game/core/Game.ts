@@ -6,7 +6,13 @@ import { collisionRect, createPlayer, resetPlayer } from "../entities/Player";
 import { classifyEnemyContact, damagePlayerFromEnemy, defeatEnemy } from "../enemies/collision";
 import { updateEnemyBehavior } from "../enemies/behaviors";
 import { createEnemies } from "../enemies/factory";
-import { FLOOR, LEVELS, MAX_LIVES, PROGRESS_KEY } from "../levels";
+import {
+  FLOOR,
+  LEVELS,
+  MAX_LIVES,
+  PROGRESS_KEY,
+  getGoalX,
+} from "../levels";
 import { landPlayer } from "../physics/collision";
 import { clampPlayerX } from "../physics/movement";
 import { applyGravity, applyJumpCut, bufferJump, consumeBufferedJump, moveTowards, refreshCoyoteTime, updatePlayerTimers } from "../physics/playerMovement";
@@ -211,7 +217,7 @@ export class Game {
       this.particles.spawnLandDust(this.player, hardLanding);
       if (hardLanding) this.camera.impulse(1.4, 4);
     }
-    if (landing && !this.checkpoints.some((checkpoint)=>checkpoint.activated) && landing.y === FLOOR && landing.footCenter > landing.x + 42 && landing.footCenter < landing.x + landing.width - 42) {
+    if (landing && !this.checkpoints.some((checkpoint) => checkpoint.activated) && landing.y === FLOOR && landing.footCenter > landing.x + 42 && landing.footCenter < landing.x + landing.width - 42) {
       this.lastSafe = {
         x: Math.max(landing.x + 24, Math.min(landing.x + landing.width - this.player.collisionBounds.width - 24, this.player.x)),
         y: landing.y - this.player.collisionBounds.height,
@@ -242,7 +248,15 @@ export class Game {
       if (this.powerTimer === 0) { this.activePower = ""; this.emit({ type: "powerChanged", value: "" }); }
     }
     if (this.player.y > 580) this.loseLife();
-    if (this.player.x > this.level.width - 205) this.finishLevel();
+    const goalX = getGoalX(this.level.width);
+
+    if (
+      this.player.x +
+      this.player.collisionBounds.width / 2 >=
+      goalX
+    ) {
+      this.finishLevel();
+    }
     this.camera.follow(this.player.x, this.player.vx, this.level.width, this.renderer.viewportWidth);
   }
 
@@ -283,8 +297,8 @@ export class Game {
     this.enemies.forEach((enemy) => {
       if (!enemy.alive) return;
       updateEnemyBehavior(enemy, {
-        player:this.player, particles:this.particles,
-        fireProjectile:(source) => { this.projectiles.fireCannonBall(source); this.beep(190, 0.07); },
+        player: this.player, particles: this.particles,
+        fireProjectile: (source) => { this.projectiles.fireCannonBall(source); this.beep(190, 0.07); },
       });
       const contact = classifyEnemyContact(this.player, enemy);
       if (contact === "stomp") {
@@ -299,19 +313,19 @@ export class Game {
   }
 
   private updateCheckpoints() {
-    this.checkpoints.forEach((checkpoint)=>{
-      if(checkpoint.activated || !checkpointTouchesPlayer(checkpoint,this.player))return;
-      this.lastSafe=activateCheckpoint(this.checkpoints,checkpoint);
-      this.particles.burst(checkpoint.x,checkpoint.y+18,"#75f7e7",22,5);this.beep(760,.18);
+    this.checkpoints.forEach((checkpoint) => {
+      if (checkpoint.activated || !checkpointTouchesPlayer(checkpoint, this.player)) return;
+      this.lastSafe = activateCheckpoint(this.checkpoints, checkpoint);
+      this.particles.burst(checkpoint.x, checkpoint.y + 18, "#75f7e7", 22, 5); this.beep(760, .18);
     });
   }
 
-  private updateHazards(hurtDuration:number) {
-    if(this.player.inv>0)return;
-    const hazard=this.hazards.find((item)=>hazardHitsPlayer(item,this.player));if(!hazard)return;
-    const damage=damagePlayerFromHazard(this.player,hazard);
-    this.particles.spawnProjectileImpact(this.player.x+15,hazard.y);this.camera.impulse(1.6,4);
-    this.hurtPlayer(damage,this.player.vx<0?-1:1,hurtDuration,true);
+  private updateHazards(hurtDuration: number) {
+    if (this.player.inv > 0) return;
+    const hazard = this.hazards.find((item) => hazardHitsPlayer(item, this.player)); if (!hazard) return;
+    const damage = damagePlayerFromHazard(this.player, hazard);
+    this.particles.spawnProjectileImpact(this.player.x + 15, hazard.y); this.camera.impulse(1.6, 4);
+    this.hurtPlayer(damage, this.player.vx < 0 ? -1 : 1, hurtDuration, true);
   }
 
   private hurtPlayer(damage: number, knockbackDirection: number, hurtDuration: number, alreadyKnockedBack = false) {
@@ -332,7 +346,7 @@ export class Game {
   private loseLife() {
     this.setLives(this.lives - 1); this.beep(90, 0.2);
     if (this.lives <= 0) { this.setState("lost"); return; }
-    const respawn=resolveRespawnPosition(this.lastSafe,this.checkpoints);
+    const respawn = resolveRespawnPosition(this.lastSafe, this.checkpoints);
     this.player.x = respawn.x; this.player.y = respawn.y - 8;
     this.player.vx = 0; this.player.vy = 0; this.player.inv = 90;
     this.player.hurtTimer = movementForLevel(this.level).hurtDuration;
@@ -340,34 +354,108 @@ export class Game {
   }
 
   private finishLevel() {
-    this.setScore(this.score + this.lives * 500);
-    this.particles.burst(this.level.width - 140, 250, "#fff06a", 55); this.beep(880, 0.4);
+    if (this.state !== "playing") return;
+
+    const goalX = getGoalX(this.level.width);
+
+    this.setScore(
+      this.score + this.lives * 500,
+    );
+
+    this.particles.burst(
+      goalX,
+      290,
+      "#fff06a",
+      55,
+    );
+
+    this.beep(880, 0.4);
+
     this.finishTimer = 0;
-    this.finishTarget = this.activeLevel === LEVELS.length - 1 ? "won" : "map";
-    this.unlockedLevel = nextUnlockedLevel(this.unlockedLevel, this.activeLevel, LEVELS.length);
-    this.emit({ type: "unlockedLevelChanged", value: this.unlockedLevel });
-    window.localStorage.setItem(PROGRESS_KEY, String(this.unlockedLevel));
-    this.player.vx = 0; this.player.vy = -7; this.input.clear();
+
+    this.finishTarget =
+      this.activeLevel === LEVELS.length - 1
+        ? "won"
+        : "map";
+
+    this.unlockedLevel =
+      nextUnlockedLevel(
+        this.unlockedLevel,
+        this.activeLevel,
+        LEVELS.length,
+      );
+
+    this.emit({
+      type: "unlockedLevelChanged",
+      value: this.unlockedLevel,
+    });
+
+    window.localStorage.setItem(
+      PROGRESS_KEY,
+      String(this.unlockedLevel),
+    );
+
+    this.player.vx = 0;
+    this.player.vy = -7;
+
+    this.input.clear();
+
     this.setState("finishing");
   }
 
   private updateFinishing() {
     this.finishTimer++;
-    this.player.vy += 0.42; this.player.y += this.player.vy;
-    if (this.player.y + this.player.collisionBounds.height >= FLOOR) {
-      this.player.y = FLOOR - this.player.collisionBounds.height;
-      this.player.vy = this.finishTimer < 52 ? -5.5 : 0;
+
+    const goalX =
+      getGoalX(this.level.width);
+
+    this.player.vy += 0.42;
+    this.player.y += this.player.vy;
+
+    if (
+      this.player.y +
+      this.player.collisionBounds.height >=
+      FLOOR
+    ) {
+      this.player.y =
+        FLOOR -
+        this.player.collisionBounds.height;
+
+      this.player.vy =
+        this.finishTimer < 52
+          ? -5.5
+          : 0;
     }
+
     if (this.finishTimer % 9 === 0) {
-      const colors = ["#fff06a", "#ff4e88", "#76f3dc", "#ffffff"];
+      const colors = [
+        "#fff06a",
+        "#ff4e88",
+        "#76f3dc",
+        "#ffffff",
+      ];
+
       this.particles.burst(
-        this.level.width - 250 + Math.random() * 230,
-        180 + Math.random() * 170,
-        colors[Math.floor(Math.random() * colors.length)],
+        goalX -
+        85 +
+        Math.random() * 170,
+        180 +
+        Math.random() * 170,
+        colors[
+        Math.floor(
+          Math.random() *
+          colors.length,
+        )
+        ],
         9,
       );
     }
-    if (this.finishTimer >= 96) this.setState(this.finishTarget);
+
+    if (this.finishTimer >= 96) {
+      this.setState(
+        this.finishTarget,
+      );
+    }
   }
 
   private render(timestamp: number) {

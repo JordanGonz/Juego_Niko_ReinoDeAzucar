@@ -11,6 +11,11 @@ export const PLAYER_HEIGHT = 50;
 export const MAX_LIVES = 5;
 
 export const PROGRESS_KEY = "niko-unlocked-world";
+export const GOAL_OFFSET = 190;
+
+export function getGoalX(levelWidth: number) {
+  return levelWidth - GOAL_OFFSET;
+}
 
 export const LEVELS: readonly Level[] = [
   {

@@ -1,4 +1,7 @@
-import { LEVELS } from "../levels";
+import {
+  LEVELS,
+  getGoalX,
+} from "../levels";
 import { collisionRect, visualRect } from "../entities/Player";
 import { projectileCollisionRect } from "../entities/Projectile";
 import { getEnemyDebugData } from "../enemies/debug";
@@ -227,7 +230,7 @@ export class GameRenderer {
     });
     view.projectiles.forEach((projectile) => { if (isVisibleInCamera(projectile.x, projectile.visualBounds.width, cameraX, width)) this.projectileRenderer.render(ctx, projectile); });
 
-    const goalX = level.width - 150;
+    const goalX = getGoalX(level.width);
 
     // Poste
     ctx.fillStyle = "#ffda3d";
