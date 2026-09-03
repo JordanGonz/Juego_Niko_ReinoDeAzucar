@@ -13,26 +13,74 @@ export type SpriteSheet = {
 };
 
 export class SpritePlayerRenderer implements PlayerRenderer {
-  constructor(private readonly sheet: SpriteSheet) {}
+  constructor(
+    private readonly sheet: SpriteSheet,
+    private readonly frameInset = 1,
+  ) {}
 
   render({ ctx, player, frame, tick }: PlayerRenderArgs) {
     const visual = visualRect(player);
-    const transform = playerVisualTransform(player.animationState, tick);
-    const sourceX = frame % this.sheet.columns * this.sheet.frameWidth;
-    const sourceY = Math.floor(frame / this.sheet.columns) * this.sheet.frameHeight;
-    const width = this.sheet.frameWidth * this.sheet.scale;
-    const height = this.sheet.frameHeight * this.sheet.scale;
-    const anchorX = visual.x + visual.width / 2;
-    const anchorY = visual.y + visual.height + transform.offsetY;
-    ctx.save(); ctx.translate(anchorX, anchorY);
-    ctx.scale(player.facing * transform.scaleX, transform.scaleY);
+    const transform = playerVisualTransform(
+      player.animationState,
+      tick,
+    );
+
+    const sourceX =
+      (frame % this.sheet.columns) *
+        this.sheet.frameWidth +
+      this.frameInset;
+
+    const sourceY =
+      Math.floor(frame / this.sheet.columns) *
+        this.sheet.frameHeight +
+      this.frameInset;
+
+    const sourceWidth = Math.max(
+      1,
+      this.sheet.frameWidth - this.frameInset * 2,
+    );
+
+    const sourceHeight = Math.max(
+      1,
+      this.sheet.frameHeight - this.frameInset * 2,
+    );
+
+    const width =
+      this.sheet.frameWidth * this.sheet.scale;
+
+    const height =
+      this.sheet.frameHeight * this.sheet.scale;
+
+    const anchorX =
+      visual.x + visual.width / 2;
+
+    const anchorY =
+      visual.y +
+      visual.height +
+      transform.offsetY;
+
+    ctx.save();
+
+    ctx.imageSmoothingEnabled = true;
+
+    ctx.translate(anchorX, anchorY);
+    ctx.scale(
+      player.facing * transform.scaleX,
+      transform.scaleY,
+    );
+
     ctx.drawImage(
       this.sheet.image,
-      sourceX, sourceY, this.sheet.frameWidth, this.sheet.frameHeight,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
       -this.sheet.pivotX * this.sheet.scale,
       -this.sheet.pivotY * this.sheet.scale,
-      width, height,
+      width,
+      height,
     );
+
     ctx.restore();
   }
 }

@@ -65,33 +65,155 @@ export class GameRenderer {
     const gameplayAtlas = this.assets.get(GLOBAL_ASSETS.collectibles.id);
     view.coins.forEach((coin, index) => {
       if (coin.taken || !isVisibleInCamera(coin.x, 30, cameraX, width)) return;
+
       const pulse = 1 + Math.sin(tick * 0.12 + index) * 0.09;
       const turn = .58 + .42 * Math.abs(Math.cos(tick * .055 + index));
-      ctx.save(); ctx.globalAlpha = .22; ctx.fillStyle = "#392b50"; ctx.beginPath(); ctx.ellipse(coin.x, coin.y + 19, 13, 4, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-      ctx.save(); ctx.translate(coin.x, coin.y); ctx.scale(turn, pulse);
-      if (gameplayAtlas) { drawAtlasCell(ctx, gameplayAtlas, { column: 3, row: 0 }, 5, 2, -25, -38, 50, 76); ctx.restore(); return; }
-      ctx.shadowColor = "#fff6a0"; ctx.shadowBlur = 20;
+
+      ctx.save();
+      ctx.globalAlpha = .18;
+      ctx.fillStyle = "#392b50";
+      ctx.beginPath();
+      ctx.ellipse(coin.x, coin.y + 14, 9, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(coin.x, coin.y);
+      ctx.scale(turn, pulse);
+
+      if (gameplayAtlas) {
+        drawAtlasCell(
+          ctx,
+          gameplayAtlas,
+          { column: 3, row: 0 },
+          5,
+          2,
+          -16,
+          -24,
+          32,
+          48,
+        );
+        ctx.restore();
+        return;
+      }
+
+      ctx.shadowColor = "#fff6a0";
+      ctx.shadowBlur = 16;
       ctx.fillStyle = "#ffd43b";
-      ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
-      ctx.fillStyle = "rgba(255,246,160,.72)"; ctx.beginPath(); ctx.ellipse(-4, -5, 4, 6, -.6, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "#fff4a8"; ctx.lineWidth = 2.5; ctx.stroke(); ctx.strokeStyle = "#d98714"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = "#fff3a5"; ctx.fillRect(-1.5, -6, 3, 12); ctx.restore();
-      if ((tick + index * 13) % 48 < 12) { ctx.save(); ctx.strokeStyle = "rgba(255,255,225,.9)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(coin.x + 15, coin.y - 12); ctx.lineTo(coin.x + 15, coin.y - 3); ctx.moveTo(coin.x + 11, coin.y - 7); ctx.lineTo(coin.x + 20, coin.y - 7); ctx.stroke(); ctx.restore(); }
+      ctx.beginPath();
+      ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = "rgba(255,246,160,.72)";
+      ctx.beginPath();
+      ctx.ellipse(-3, -4, 3, 5, -.6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#fff4a8";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.strokeStyle = "#d98714";
+      ctx.lineWidth = 1.7;
+      ctx.beginPath();
+      ctx.arc(0, 0, 6, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = "#fff3a5";
+      ctx.fillRect(-1, -5, 2, 10);
+
+      ctx.restore();
+
+      if ((tick + index * 13) % 48 < 12) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(255,255,225,.9)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(coin.x + 11, coin.y - 9);
+        ctx.lineTo(coin.x + 11, coin.y - 3);
+        ctx.moveTo(coin.x + 8, coin.y - 6);
+        ctx.lineTo(coin.x + 14, coin.y - 6);
+        ctx.stroke();
+        ctx.restore();
+      }
     });
 
     view.pickups.forEach((pickup, index) => {
       if (pickup.taken || !isVisibleInCamera(pickup.x, 44, cameraX, width)) return;
-      const bob = Math.sin(tick * 0.09 + index) * 5;
-      ctx.save(); ctx.globalAlpha = .2; ctx.fillStyle = "#352647"; ctx.beginPath(); ctx.ellipse(pickup.x, pickup.y + 25, 17, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-      ctx.save(); ctx.translate(pickup.x, pickup.y + bob);
-      if (gameplayAtlas) { drawAtlasCell(ctx, gameplayAtlas, pickupAtlasCell(pickup.type), 5, 2, -31, -42, 62, 84); ctx.restore(); return; }
-      ctx.shadowColor = pickup.type === "heart" ? "#ff557c" : pickup.type === "shield" ? "#75f7e7" : "#ffe047";
-      ctx.shadowBlur = 22;
-      const orb = ctx.createRadialGradient(-6, -7, 2, 0, 0, 21); orb.addColorStop(0, "#625287"); orb.addColorStop(1, "#251341"); ctx.fillStyle = orb; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,.92)"; ctx.lineWidth = 2.5; ctx.stroke();
-      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "900 24px Arial";
-      ctx.fillStyle = pickup.type === "heart" ? "#ff557c" : pickup.type === "shield" ? "#75f7e7" : "#ffe047";
-      ctx.fillText(pickup.type === "heart" ? "♥" : pickup.type === "shield" ? "◆" : "⚡", 0, 1);
+
+      const bob = Math.sin(tick * 0.09 + index) * 4;
+
+      ctx.save();
+      ctx.globalAlpha = .18;
+      ctx.fillStyle = "#352647";
+      ctx.beginPath();
+      ctx.ellipse(pickup.x, pickup.y + 18, 12, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(pickup.x, pickup.y + bob);
+
+      if (gameplayAtlas) {
+        drawAtlasCell(
+          ctx,
+          gameplayAtlas,
+          pickupAtlasCell(pickup.type),
+          5,
+          2,
+          -20,
+          -28,
+          40,
+          56,
+        );
+        ctx.restore();
+        return;
+      }
+
+      ctx.shadowColor =
+        pickup.type === "heart"
+          ? "#ff557c"
+          : pickup.type === "shield"
+            ? "#75f7e7"
+            : "#ffe047";
+
+      ctx.shadowBlur = 18;
+
+      const orb = ctx.createRadialGradient(-5, -6, 2, 0, 0, 16);
+      orb.addColorStop(0, "#625287");
+      orb.addColorStop(1, "#251341");
+
+      ctx.fillStyle = orb;
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(255,255,255,.92)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "900 20px Arial";
+
+      ctx.fillStyle =
+        pickup.type === "heart"
+          ? "#ff557c"
+          : pickup.type === "shield"
+            ? "#75f7e7"
+            : "#ffe047";
+
+      ctx.fillText(
+        pickup.type === "heart"
+          ? "♥"
+          : pickup.type === "shield"
+            ? "◆"
+            : "⚡",
+        0,
+        1,
+      );
+
       ctx.restore();
     });
 

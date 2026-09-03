@@ -8,25 +8,37 @@ export class SpriteEnemyRenderer implements EnemyRenderer {
     private readonly image: CanvasImageSource,
     private readonly frameWidth: number,
     private readonly frameHeight: number,
+    private readonly frameInset = 1,
   ) {}
 
   render({ ctx, enemy }: EnemyRenderContext) {
     const visual = enemy.visualBounds;
 
-    const drawWidth = visual.width;
-    const drawHeight = visual.height;
+    const sourceX =
+      enemy.animationFrame * this.frameWidth +
+      this.frameInset;
 
-    const drawX = -drawWidth / 2;
-    const drawY = 0;
+    const sourceY = this.frameInset;
 
-    const sourceX = enemy.animationFrame * this.frameWidth;
+    const sourceWidth = Math.max(
+      1,
+      this.frameWidth - this.frameInset * 2,
+    );
+
+    const sourceHeight = Math.max(
+      1,
+      this.frameHeight - this.frameInset * 2,
+    );
 
     ctx.save();
 
+    ctx.imageSmoothingEnabled = true;
     ctx.globalAlpha = enemy.opacity;
 
     ctx.translate(
-      enemy.x + visual.offsetX + visual.width / 2,
+      enemy.x +
+        visual.offsetX +
+        visual.width / 2,
       enemy.y + visual.offsetY,
     );
 
@@ -35,13 +47,13 @@ export class SpriteEnemyRenderer implements EnemyRenderer {
     ctx.drawImage(
       this.image,
       sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      -visual.width / 2,
       0,
-      this.frameWidth,
-      this.frameHeight,
-      drawX,
-      drawY,
-      drawWidth,
-      drawHeight,
+      visual.width,
+      visual.height,
     );
 
     ctx.restore();

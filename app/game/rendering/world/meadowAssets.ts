@@ -28,9 +28,39 @@ export function pickupAtlasCell(type:PickupType):AtlasCell{
 }
 
 export function drawAtlasCell(
-  ctx:CanvasRenderingContext2D,image:HTMLImageElement,cell:AtlasCell,columns:number,rows:number,
-  x:number,y:number,width:number,height:number,
-){
-  const sourceWidth=image.naturalWidth/columns,sourceHeight=image.naturalHeight/rows;
-  ctx.drawImage(image,cell.column*sourceWidth,cell.row*sourceHeight,sourceWidth,sourceHeight,x,y,width,height);
+  ctx: CanvasRenderingContext2D,
+  image: CanvasImageSource,
+  cell: { column: number; row: number },
+  columns: number,
+  rows: number,
+  dx: number,
+  dy: number,
+  dw: number,
+  dh: number,
+  inset = 1,
+) {
+  const atlas = image as HTMLImageElement;
+
+  const atlasWidth = atlas.naturalWidth || atlas.width;
+  const atlasHeight = atlas.naturalHeight || atlas.height;
+
+  const cellWidth = atlasWidth / columns;
+  const cellHeight = atlasHeight / rows;
+
+  const sx = cell.column * cellWidth + inset;
+  const sy = cell.row * cellHeight + inset;
+  const sw = Math.max(1, cellWidth - inset * 2);
+  const sh = Math.max(1, cellHeight - inset * 2);
+
+  ctx.drawImage(
+    atlas,
+    sx,
+    sy,
+    sw,
+    sh,
+    Math.round(dx),
+    Math.round(dy),
+    Math.round(dw),
+    Math.round(dh),
+  );
 }
