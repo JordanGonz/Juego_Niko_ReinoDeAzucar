@@ -1,10 +1,5 @@
-import type {
-  Player,
-  PlayerState,
-} from "../types";
-import type {
-  AnimationClip,
-} from "./AnimationClip";
+import type { Player, PlayerState } from "../types";
+import type { AnimationClip } from "./AnimationClip";
 
 export const PLAYER_ANIMATION_CLIPS: Record<
   PlayerState,
@@ -21,14 +16,8 @@ export const PLAYER_ANIMATION_CLIPS: Record<
     frameDuration: 0.085,
     loop: true,
     events: [
-      {
-        frame: 1,
-        name: "footstep",
-      },
-      {
-        frame: 4,
-        name: "footstep",
-      },
+      { frame: 1, name: "footstep" },
+      { frame: 4, name: "footstep" },
     ],
   },
 
@@ -39,31 +28,28 @@ export const PLAYER_ANIMATION_CLIPS: Record<
   },
 
   jumpUp: {
-    frames: [12, 13],
+    frames: [14, 15],
     frameDuration: 0.1,
     loop: true,
   },
 
   fall: {
-    frames: [14, 15],
+    frames: [16, 15],
     frameDuration: 0.12,
     loop: true,
   },
 
   land: {
-    frames: [16, 17, 18],
+    frames: [17, 18, 19],
     frameDuration: 0.055,
     loop: false,
     events: [
-      {
-        frame: 1,
-        name: "land",
-      },
+      { frame: 1, name: "land" },
     ],
   },
 
   skid: {
-    frames: [19, 20],
+    frames: [20, 19],
     frameDuration: 0.08,
     loop: true,
   },
@@ -75,13 +61,13 @@ export const PLAYER_ANIMATION_CLIPS: Record<
   },
 
   death: {
-    frames: [23, 24, 25, 26],
+    frames: [23, 24, 23, 24],
     frameDuration: 0.12,
     loop: false,
   },
 
   victory: {
-    frames: [27, 28, 29, 30],
+    frames: [25, 26, 25, 26],
     frameDuration: 0.12,
     loop: true,
   },
