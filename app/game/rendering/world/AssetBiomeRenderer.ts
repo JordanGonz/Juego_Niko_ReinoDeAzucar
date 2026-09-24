@@ -120,6 +120,48 @@ export class AssetBiomeRenderer implements BiomeRenderer {
     }
 
     ctx.globalAlpha = 1;
+    if (this.biome === "canyon") this.renderLava(ctx, width, height, view.tick);
+  }
+
+  private renderLava(ctx: CanvasRenderingContext2D, width: number, height: number, tick: number) {
+    ctx.save();
+    const gradient = ctx.createLinearGradient(0, 472, 0, height);
+    gradient.addColorStop(0, "#fff087");
+    gradient.addColorStop(.12, "#ff8a28");
+    gradient.addColorStop(.55, "#e54319");
+    gradient.addColorStop(1, "#711b29");
+    ctx.fillStyle = gradient;
+    ctx.shadowColor = "#ff7725";
+    ctx.shadowBlur = 22;
+    ctx.beginPath();
+    ctx.moveTo(0, height);
+    ctx.lineTo(0, 480);
+    for (let x = 0; x <= width + 12; x += 12) {
+      ctx.lineTo(x, 480 + Math.sin(x * .035 + tick * .09) * 4 + Math.sin(x * .011 - tick * .045) * 3);
+    }
+    ctx.lineTo(width, height);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    for (let i = 0; i < 22; i++) {
+      const x = (i * 167 + tick * (i % 2 ? 1.4 : -.7) + width * 4) % width;
+      const y = 487 + (i * 37) % Math.max(18, height - 490);
+      ctx.globalAlpha = .35 + Math.sin(tick * .1 + i) * .22;
+      ctx.fillStyle = i % 3 ? "#ffe185" : "#ff9c43";
+      ctx.beginPath();
+      ctx.ellipse(x, y, 5 + i % 5, 1.5 + i % 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < 8; i++) {
+      const x = (i * 149 + tick * .55) % width;
+      const rise = (tick * (1 + i % 3) + i * 47) % 66;
+      ctx.fillStyle = `rgba(255,208,91,${(1 - rise / 66) * .8})`;
+      ctx.beginPath();
+      ctx.arc(x, 478 - rise, 2 + i % 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   renderPlatforms(context: WorldRenderContext) {

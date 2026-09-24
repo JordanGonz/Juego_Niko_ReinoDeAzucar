@@ -122,4 +122,5 @@ export type RenderState = {
   fixedUpdateRate: number;
   animationFrame: number;
   attackTimer?:number;
+  boss?: import("./bosses/SalamandraBoss").SalamandraBoss | null;
 };

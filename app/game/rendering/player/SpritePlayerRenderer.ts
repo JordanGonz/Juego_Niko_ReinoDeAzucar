@@ -43,10 +43,10 @@ export class SpritePlayerRenderer
         tick,
       );
 
-    // The supplied sheet has seven poses in the first three rows, eight in the last.
-    const row=frame<21?Math.floor(frame/7):3;
-    const columns=row===3?8:7;
-    const column=row===3?Math.min(7,frame-21):frame%7;
+    // Seven poses in every row. Using eight in the final row sampled the next pose.
+    const row=Math.min(3,Math.floor(frame/7));
+    const columns=7;
+    const column=frame%7;
     const source=atlasBounds(this.sheet.image,columns,4,column,row);
     const scale=Math.min(visual.width/source.width,visual.height/source.height);
     const drawWidth=source.width*scale,drawHeight=source.height*scale;

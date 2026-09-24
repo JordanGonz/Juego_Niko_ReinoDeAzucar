@@ -1,6 +1,7 @@
 import { AnimationController } from "../animation/AnimationController";
 import { PLAYER_ANIMATION_CLIPS, resolvePlayerState } from "../animation/playerAnimations";
 import { playTone } from "../audio";
+import { SalamandraBoss } from "../bosses/SalamandraBoss";
 import { Camera } from "../camera/Camera";
 import { collisionRect, createPlayer, resetPlayer } from "../entities/Player";
 import { classifyEnemyContact, damagePlayerFromEnemy, defeatEnemy } from "../enemies/collision";
@@ -39,6 +40,7 @@ export class Game {
   private readonly player: Player = createPlayer();
   private readonly particles = new ParticleSystem();
   private readonly projectiles = new ProjectileSystem();
+  private boss: SalamandraBoss | null = null;
   private readonly animation = new AnimationController<PlayerState>(PLAYER_ANIMATION_CLIPS, "idle");
   private state: GameState = "ready";
   private activeLevel = 0;
@@ -182,6 +184,7 @@ export class Game {
     this.checkpoints = createCheckpoints(this.level);
     this.hazards = createHazards(this.level);
     this.enemies = createEnemies(this.level);
+    this.boss = index === 1 ? new SalamandraBoss() : null;
     this.particles.clear();
     this.projectiles.clear();
     this.animation.setState("idle");
@@ -288,12 +291,27 @@ export class Game {
         this.particles.spawnProjectileImpact(enemy.x+enemy.collisionBounds.width/2,enemy.y+enemy.collisionBounds.height/2);
         this.camera.impulse(1.5,4);
       }});
+      if (this.boss?.strike(this.player)) {
+        this.particles.spawnProjectileImpact(this.boss.x + 44, this.boss.y + 40);
+        this.camera.impulse(2.5, 7);
+        this.beep(this.boss.defeated ? 950 : 245, .15);
+        if (this.boss.defeated) {
+          this.setScore(this.score + 1500);
+          this.particles.burst(this.boss.x + 50, this.boss.y + 30, "#ffcc59", 46);
+        }
+      }
     }
     this.collectCoins();
     this.collectPickups();
     this.updateCheckpoints();
     this.updateHazards(config.hurtDuration);
     this.updateEnemies(config.hurtDuration);
+    if (this.state !== "playing") return;
+    this.boss?.update(this.player);
+    if (this.boss?.touches(this.player) && this.player.inv <= 0) {
+      this.hurtPlayer(1, this.player.x < this.boss.x ? -1 : 1, config.hurtDuration);
+    }
+    if (this.state !== "playing") return;
     this.projectiles.update(this.level.width);
     const projectileHit = this.player.inv <= 0 ? this.projectiles.consumePlayerHit(this.player) : null;
     if (projectileHit) {
@@ -307,13 +325,16 @@ export class Game {
       this.powerTimer--;
       if (this.powerTimer === 0) { this.activePower = ""; this.emit({ type: "powerChanged", value: "" }); }
     }
-    if (this.player.y > 580) this.loseLife();
+    if (this.player.y + this.player.collisionBounds.height > (this.level.biome === "canyon" ? 510 : 630)) {
+      this.loseLife();
+      if (this.state !== "playing") return;
+    }
     const goalX = getGoalX(this.level.width);
 
     if (
       this.player.x +
       this.player.collisionBounds.width / 2 >=
-      goalX
+      goalX && (!this.boss || this.boss.defeated)
     ) {
       this.finishLevel();
     }
@@ -542,6 +563,7 @@ export class Game {
       fixedUpdateRate: FIXED_UPDATE_RATE,
       animationFrame: this.animation.frame,
       attackTimer:this.attackTimer,
+      boss:this.boss && this.activeLevel === 1 ? this.boss : null,
     });
   }
 

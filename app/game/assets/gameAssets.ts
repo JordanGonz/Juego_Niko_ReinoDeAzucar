@@ -3,6 +3,7 @@ import type { AssetDefinition } from "./AssetManager.ts";
 
 export const GLOBAL_ASSETS={
   niko:{id:"character-niko",src:"/game/characters/niko/niko_atlas.png"},
+  salamandra:{id:"boss-salamandra",src:"/game/bosses/salamandra-ignea/sprite.png"},
   collectibles:{id:"global-collectibles",src:"/game/worlds/meadow/gameplay/meadow_gameplay_atlas.png"},
   projectile:{id:"projectile-cannonball",src:"/game/projectiles/cannonball/atlas.png"},
   blobHopper:{id:"enemy-blob",src:"/game/enemies/blob/atlas.png"},

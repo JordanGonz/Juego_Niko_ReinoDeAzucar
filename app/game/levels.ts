@@ -278,7 +278,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
 
   {
     name: "Cañón de Caramelo",
-    mission: "Salta entre las islas de caramelo sin caer al jarabe.",
+    mission: "Cruza la lava y derrota a la Salamandra Ígnea.",
     width: 4000,
     biome: "canyon",
     friction: 0.68,
@@ -338,6 +338,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [1035, 180, "heart"],
       [2235, 190, "shield"],
       [3465, 175, "boost"],
+      [3360, 410, "heart"],
     ],
 
     enemies: [
@@ -373,13 +374,8 @@ const ORIGINAL_LEVELS: readonly Level[] = [
         x: 3270,
         platformIndex: 5,
       },
-      {
-        type: "robotCannon",
-        x: 3800,
-        platformIndex: 6,
-        facing: -1,
-      },
     ],
+    checkpoints: [{ id: "volcano-boss", x: 3290, platformIndex: 5 }],
   },
 
   {

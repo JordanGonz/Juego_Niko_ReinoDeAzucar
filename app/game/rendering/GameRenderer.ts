@@ -12,9 +12,11 @@ import { SpriteEnemyRenderer } from "./enemy/SpriteEnemyRenderer.ts";
 import { EnemyRendererFactory } from "./enemy/EnemyRendererFactory";
 import { ProjectileRenderer } from "./enemy/ProjectileRenderer";
 import { WorldRenderer } from "./world/WorldRenderer";
+import { GoalRenderer } from "./world/GoalRenderer";
 import { MEADOW_BIOME } from "./world/biomes/meadow";
 import type { RenderState } from "../types";
 import { AssetManager } from "../assets/AssetManager.ts";
+import { atlasBounds } from "./atlasBounds.ts";
 import { drawAtlasCell, isVisibleInCamera, MEADOW_ASSET_MANIFEST, pickupAtlasCell } from "./world/meadowAssets.ts";
 import { ENEMY_ASSET_BY_TYPE, GLOBAL_ASSET_MANIFEST, GLOBAL_ASSETS, worldAssetManifest } from "../assets/gameAssets.ts";
 
@@ -24,6 +26,7 @@ export class GameRenderer {
   private readonly enemyRenderers = new EnemyRendererFactory();
   private readonly projectileRenderer = new ProjectileRenderer();
   private readonly worldRenderer = new WorldRenderer();
+  private readonly goalRenderer = new GoalRenderer();
   private readonly assets = new AssetManager();
   private logicalWidth = 960;
   private readonly logicalHeight = 540;
@@ -225,58 +228,22 @@ export class GameRenderer {
     view.enemies.forEach((enemy) => { if (!enemy.alive || !isVisibleInCamera(enemy.x, enemy.visualBounds.width, cameraX, width)) return; ctx.beginPath(); ctx.ellipse(enemy.x + enemy.collisionBounds.width / 2, enemy.platformY + 3, enemy.visualBounds.width * .36, 5, 0, 0, Math.PI * 2); ctx.fill(); });
     ctx.beginPath(); ctx.ellipse(view.player.x + 15, view.player.y + view.player.collisionBounds.height + 4, 18, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
 
+    view.projectiles.forEach((projectile) => { if (isVisibleInCamera(projectile.x, projectile.visualBounds.width, cameraX, width)) this.projectileRenderer.render(ctx, projectile); });
+
+    const goalX = getGoalX(level.width);
+    if (isVisibleInCamera(goalX - 70, 150, cameraX, width)) {
+      this.goalRenderer.render(ctx, {
+        x: goalX, biome: level.biome, tick,
+        locked: Boolean(view.boss && !view.boss.defeated),
+        finishing: view.state === "finishing",
+        finalWorld: view.activeLevel === LEVELS.length - 1,
+      });
+    }
     view.enemies.forEach((enemy) => {
       if (!enemy.alive || !isVisibleInCamera(enemy.x, enemy.visualBounds.width, cameraX, width)) return;
       this.enemyRenderers.get(enemy.type).render({ ctx, enemy, tick });
     });
-    view.projectiles.forEach((projectile) => { if (isVisibleInCamera(projectile.x, projectile.visualBounds.width, cameraX, width)) this.projectileRenderer.render(ctx, projectile); });
-
-    const goalX = getGoalX(level.width);
-
-    // Poste
-    ctx.fillStyle = "#ffda3d";
-    ctx.fillRect(goalX, 305, 9, 153);
-
-    // Remate superior
-    ctx.fillStyle = "#fff";
-    ctx.beginPath();
-    ctx.arc(goalX + 4.5, 298, 11, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Movimiento ligero de la bandera
-    const flagWave =
-      Math.sin(tick * 0.2) *
-      (view.state === "finishing" ? 6 : 2);
-
-    // Bandera
-    ctx.fillStyle = "#ff4e88";
-    ctx.beginPath();
-    ctx.moveTo(goalX + 9, 312);
-    ctx.quadraticCurveTo(
-      goalX + 42,
-      318 + flagWave,
-      goalX + 78,
-      329
-    );
-    ctx.quadraticCurveTo(
-      goalX + 42,
-      340 + flagWave,
-      goalX + 9,
-      348
-    );
-    ctx.fill();
-
-    // Texto
-    ctx.fillStyle = "#fff";
-    ctx.font = "900 13px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(
-      view.activeLevel === LEVELS.length - 1 ? "TORRE" : "META",
-      goalX + 40,
-      333
-    );
-
-    ctx.textAlign = "start";
+    this.drawBoss(view);
 
     view.particles.forEach((particle) => {
       ctx.globalAlpha = Math.max(0, particle.life / 45); ctx.fillStyle = particle.color;
@@ -295,6 +262,8 @@ export class GameRenderer {
     world.renderForeground(worldContext);
     ctx.restore();
 
+    if (view.boss?.active && !view.boss.defeated) this.drawBossHealth(view);
+
     if (view.state === "finishing") this.drawFinish(view);
     if (!this.globalReady) this.drawLoading();
 
@@ -305,6 +274,61 @@ export class GameRenderer {
     if (view.debug) this.drawDebug(view);
   }
 
+  private drawBoss(view: RenderState) {
+    const boss = view.boss;
+    if (!boss?.active || boss.defeated) return;
+    const { ctx } = this;
+    const image = this.assets.get(GLOBAL_ASSETS.salamandra.id);
+    ctx.save();
+    if (boss.phase === "warning") {
+      ctx.fillStyle = `rgba(255,75,24,${.15 + Math.sin(view.tick * .35) * .12})`;
+      ctx.fillRect(boss.x - 70, 449, boss.width + 140, 9);
+    }
+    if (boss.phase === "exposed") {
+      ctx.strokeStyle = "#ffe177";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(boss.x + boss.width / 2, boss.y + 22, 5 + Math.sin(view.tick * .2) * 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (boss.invulnerable > 0 && view.tick % 6 < 3) ctx.globalAlpha = .55;
+    if (image) {
+      const source = atlasBounds(image, 1, 1, 0, 0);
+      ctx.translate(boss.x + boss.width / 2, 458);
+      ctx.scale(boss.facing === -1 ? 1 : -1, 1);
+      ctx.drawImage(image, source.x, source.y, source.width, source.height, -boss.width / 2 - 14, -92, boss.width + 28, 92);
+    } else {
+      ctx.fillStyle = "#f56726";
+      ctx.beginPath();
+      ctx.ellipse(boss.x + 52, boss.y + 42, 50, 36, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  private drawBossHealth(view: RenderState) {
+    const boss = view.boss!;
+    const { ctx } = this;
+    const width = 260, x = (this.logicalWidth - width) / 2;
+    ctx.save();
+    ctx.fillStyle = "rgba(31,11,31,.88)";
+    ctx.fillRect(x - 12, 14, width + 24, 61);
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#fff4dd";
+    ctx.font = "bold 14px Arial";
+    ctx.fillText(boss.name.toUpperCase(), this.logicalWidth / 2, 33);
+    ctx.fillStyle = "#522632";
+    ctx.fillRect(x, 41, width, 12);
+    ctx.fillStyle = boss.vulnerable ? "#ffe079" : "#ff693d";
+    ctx.fillRect(x, 41, width * boss.health / boss.maxHealth, 12);
+    ctx.strokeStyle = "#ffdec2";
+    ctx.strokeRect(x, 41, width, 12);
+    ctx.font = "bold 10px Arial";
+    ctx.fillStyle = "#ffe4be";
+    ctx.fillText(boss.vulnerable ? "¡AHORA! GOLPEA CON LA ESPADA" : "ESQUIVA LA EMBESTIDA · ESPERA SU PAUSA", this.logicalWidth / 2, 69);
+    ctx.restore();
+  }
+
   private configureGlobalSprites() {
     const niko =
       this.assets.get(
@@ -313,7 +337,7 @@ export class GameRenderer {
 
     if (niko) {
       const frameWidth =
-        niko.naturalWidth / 8;
+        niko.naturalWidth / 7;
 
       const frameHeight =
         niko.naturalHeight / 4;
@@ -325,7 +349,7 @@ export class GameRenderer {
           frameWidth,
           frameHeight,
 
-          columns: 8,
+          columns: 7,
 
           pivotX:
             frameWidth / 2,
