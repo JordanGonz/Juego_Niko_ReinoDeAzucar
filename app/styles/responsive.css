@@ -38,10 +38,15 @@
   footer b { font-size:8px; letter-spacing:1.5px; }
 }
 @media (max-width:350px) {
+  .mobile-controls button { width:52px; height:52px; }
+  .move-controls,.action-controls { gap:8px; }
   .brand strong { display:none; }
   .hud { width:100%; justify-content:space-around; }
   .overlay { padding-inline:14px; }
   h1 { font-size:44px; }
+}
+@media (pointer:coarse) {
+  .mobile-controls { display:flex; }
 }
 @media (max-width:900px) and (orientation:landscape) {
   .game-shell { grid-template-rows:0 1fr 0; min-height:0; }
