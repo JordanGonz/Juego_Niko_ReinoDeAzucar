@@ -28,6 +28,8 @@ export function defeatEnemy(enemy: RuntimeEnemy, particles?: ParticleSystem) {
   if (enemy.health > 0) { setEnemyState(enemy, "hurt", 12); return false; }
   enemy.alive = false; enemy.defeated = true; enemy.contactEnabled = false;
   enemy.vx = 0; enemy.vy = 0; setEnemyState(enemy, "defeated");
-  particles?.spawnEnemyDefeat(enemy.x + enemy.collisionBounds.width / 2, enemy.y + enemy.collisionBounds.height / 2);
+  particles?.burst(enemy.x + enemy.collisionBounds.width / 2, enemy.y + enemy.collisionBounds.height / 2,
+    enemy.type === "robotCannon" || enemy.type === "stealthGhost" ? "#75f7e7" :
+    enemy.type === "rollingRock" || enemy.type === "spikeBeetle" ? "#ffb86a" : "#eaa1ff", 18, 7);
   return true;
 }

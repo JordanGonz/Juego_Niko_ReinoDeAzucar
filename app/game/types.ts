@@ -122,5 +122,5 @@ export type RenderState = {
   fixedUpdateRate: number;
   animationFrame: number;
   attackTimer?:number;
-  boss?: import("./bosses/SalamandraBoss").SalamandraBoss | null;
+  boss?: import("./bosses/SalamandraBoss").SalamandraBoss | import("./bosses/CrystalGuardianBoss").CrystalGuardianBoss | null;
 };

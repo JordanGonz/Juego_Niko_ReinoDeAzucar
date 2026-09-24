@@ -110,7 +110,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       {
         type: "tree",
         x: 210,
-        y: 418,
+        y: FLOOR + 4,
         layer: "backgroundNear",
         scale: 1.05,
         variant: 0,
@@ -118,7 +118,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       {
         type: "tree",
         x: 760,
-        y: 432,
+        y: FLOOR + 4,
         layer: "backgroundMid",
         scale: 0.78,
         variant: 1,
@@ -126,7 +126,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       {
         type: "tree",
         x: 1480,
-        y: 430,
+        y: FLOOR + 4,
         layer: "backgroundMid",
         scale: 0.9,
         variant: 2,
@@ -134,7 +134,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       {
         type: "tree",
         x: 2180,
-        y: 432,
+        y: FLOOR + 4,
         layer: "backgroundNear",
         scale: 1.08,
         variant: 1,
@@ -142,7 +142,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       {
         type: "tree",
         x: 2960,
-        y: 430,
+        y: FLOOR + 4,
         layer: "backgroundMid",
         scale: 0.82,
         variant: 0,
@@ -279,7 +279,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
   {
     name: "Cañón de Caramelo",
     mission: "Cruza la lava y derrota a la Salamandra Ígnea.",
-    width: 4000,
+    width: 4600,
     biome: "canyon",
     friction: 0.68,
     jumpForce: 14.2,
@@ -297,7 +297,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [1900, FLOOR, 390, 24],
       [2460, FLOOR, 510, 24],
       [3140, FLOOR, 360, 24],
-      [3660, FLOOR, 340, 24],
+      [3660, FLOOR, 940, 24],
 
       [250, 340, 150, 28],
       [730, 315, 150, 28],
@@ -331,7 +331,8 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [3450, 178],
       [3505, 178],
       [3760, 273],
-      [3850, 395],
+      [4050, 395],
+      [4270, 395],
     ],
 
     pickups: [
@@ -496,8 +497,8 @@ const ORIGINAL_LEVELS: readonly Level[] = [
 
   {
     name: "Castillo de Cristal",
-    mission: "Cruza el hielo y devuelve la magia a la torre real.",
-    width: 4700,
+    mission: "Cruza el hielo y derrota al Guardián Celeste de la torre real.",
+    width: 5700,
     biome: "crystal",
     friction: 0.92,
     jumpForce: 13.6,
@@ -516,7 +517,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [2470, FLOOR, 470, 24],
       [3110, FLOOR, 410, 24],
       [3690, FLOOR, 400, 24],
-      [4240, FLOOR, 460, 24],
+      [4240, FLOOR, 1460, 24],
 
       [220, 325, 145, 28],
       [690, 285, 145, 28],
@@ -561,6 +562,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [1005, 155, "heart"],
       [2855, 185, "shield"],
       [4055, 160, "boost"],
+      [4330, 410, "shield"],
     ],
 
     enemies: [
@@ -601,13 +603,8 @@ const ORIGINAL_LEVELS: readonly Level[] = [
         x: 3830,
         platformIndex: 6,
       },
-      {
-        type: "rollingRock",
-        x: 4430,
-        platformIndex: 7,
-        facing: -1,
-      },
     ],
+    checkpoints: [{ id: "crystal-boss", x: 4310, platformIndex: 7 }],
   },
 ] as const;
 

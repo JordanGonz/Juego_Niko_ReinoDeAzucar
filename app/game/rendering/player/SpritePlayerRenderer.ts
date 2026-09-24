@@ -1,10 +1,10 @@
-import { atlasBounds } from "../atlasBounds.ts";
 import { visualRect } from "../../entities/Player";
 import type {
   PlayerRenderArgs,
   PlayerRenderer,
 } from "./PlayerRenderer";
 import { playerVisualTransform } from "./visualTransform";
+import { isolatedAtlasFrame } from "../isolatedAtlasFrame";
 
 export type SpriteSheet = {
   image: CanvasImageSource;
@@ -23,7 +23,7 @@ export type SpriteSheet = {
 export class SpritePlayerRenderer
   implements PlayerRenderer
 {
-  private readonly inset = 2;
+  private readonly frames = new Map<number, HTMLCanvasElement>();
 
   constructor(
     private readonly sheet: SpriteSheet,
@@ -47,10 +47,9 @@ export class SpritePlayerRenderer
     const row=Math.min(3,Math.floor(frame/7));
     const columns=7;
     const column=frame%7;
-    const source=atlasBounds(this.sheet.image,columns,4,column,row);
-    const scale=Math.min(visual.width/source.width,visual.height/source.height);
-    const drawWidth=source.width*scale,drawHeight=source.height*scale;
-    const sourceX=source.x,sourceY=source.y,sourceWidth=source.width,sourceHeight=source.height;
+    const sprite=this.getFrame(frame,columns,column,row);
+    const scale=Math.min(visual.width/sprite.width,visual.height/sprite.height);
+    const drawWidth=sprite.width*scale,drawHeight=sprite.height*scale;
     const anchorX=player.x+player.collisionBounds.width/2;
     const anchorY=player.y+player.collisionBounds.height+transform.offsetY;
     const drawX=-drawWidth/2,drawY=-drawHeight;
@@ -71,13 +70,7 @@ export class SpritePlayerRenderer
     );
 
     ctx.drawImage(
-      this.sheet.image,
-
-      Math.round(sourceX),
-      Math.round(sourceY),
-      Math.round(sourceWidth),
-      Math.round(sourceHeight),
-
+      sprite,
       Math.round(drawX),
       Math.round(drawY),
 
@@ -86,5 +79,13 @@ export class SpritePlayerRenderer
     );
 
     ctx.restore();
+  }
+
+  private getFrame(frame: number, columns: number, column: number, row: number): HTMLCanvasElement {
+    const cached = this.frames.get(frame);
+    if (cached) return cached;
+    const canvas = isolatedAtlasFrame(this.sheet.image, columns, 4, column, row);
+    this.frames.set(frame, canvas);
+    return canvas;
   }
 }

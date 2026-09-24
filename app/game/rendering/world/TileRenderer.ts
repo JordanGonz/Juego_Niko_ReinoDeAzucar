@@ -1,9 +1,9 @@
 import type { BiomeDefinition, WorldRenderContext } from "./types";
 import {
-  drawAtlasCell,
   isVisibleInCamera,
   MEADOW_ASSETS,
 } from "./meadowAssets.ts";
+import { drawPlatformSprite } from "./platformSprite.ts";
 
 export function classifyPlatform(
   width: number,
@@ -51,51 +51,7 @@ export class TileRenderer {
         );
 
         if (atlas) {
-          const column =
-            style === "ground"
-              ? 1
-              : style === "isolated"
-                ? 3
-                : style === "short"
-                  ? 0
-                  : 2;
-
-          const visualHeight =
-            style === "ground"
-              ? Math.max(72, height)
-              : Math.max(36, height);
-
-          ctx.save();
-
-          ctx.shadowColor =
-            "rgba(47,35,53,.18)";
-          ctx.shadowBlur = 8;
-          ctx.shadowOffsetY = 5;
-
-          drawAtlasCell(
-            ctx,
-            atlas,
-            { column, row: 0 },
-            4,
-            1,
-
-            // Antes:
-            // x - 18
-            x,
-
-            // Antes:
-            // y - 52
-            y,
-
-            // Antes:
-            // width + 36
-            width,
-
-            visualHeight,
-          );
-
-          ctx.restore();
-
+          drawPlatformSprite(ctx, atlas, { x, y, width, biome: "meadow", index: platformIndex });
           return;
         }
 

@@ -17,6 +17,8 @@ import { MEADOW_BIOME } from "./world/biomes/meadow";
 import type { RenderState } from "../types";
 import { AssetManager } from "../assets/AssetManager.ts";
 import { atlasBounds } from "./atlasBounds.ts";
+import { CrystalGuardianBoss } from "../bosses/CrystalGuardianBoss";
+import { renderCrystalGuardian } from "./boss/CrystalGuardianRenderer";
 import { drawAtlasCell, isVisibleInCamera, MEADOW_ASSET_MANIFEST, pickupAtlasCell } from "./world/meadowAssets.ts";
 import { ENEMY_ASSET_BY_TYPE, GLOBAL_ASSET_MANIFEST, GLOBAL_ASSETS, worldAssetManifest } from "../assets/gameAssets.ts";
 
@@ -62,6 +64,7 @@ export class GameRenderer {
     this.ensureBiomeAssets(level.biome);
     ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
     ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     const world = this.worldRenderer.get(view);
     const worldContext = this.worldRenderer.context(ctx, view, width, height, this.assets);
     world.renderBackground(worldContext);
@@ -96,9 +99,9 @@ export class GameRenderer {
           5,
           2,
           -16,
-          -24,
+          -16,
           32,
-          48,
+          32,
         );
         ctx.restore();
         return;
@@ -170,9 +173,9 @@ export class GameRenderer {
           5,
           2,
           -20,
-          -28,
+          -22,
           40,
-          56,
+          44,
         );
         ctx.restore();
         return;
@@ -278,29 +281,59 @@ export class GameRenderer {
     const boss = view.boss;
     if (!boss?.active || boss.defeated) return;
     const { ctx } = this;
-    const image = this.assets.get(GLOBAL_ASSETS.salamandra.id);
+    if (boss instanceof CrystalGuardianBoss) {
+      renderCrystalGuardian(ctx, boss, view.tick, this.assets.get(GLOBAL_ASSETS.crystalGuardian.id));
+      return;
+    }
+    const image = this.assets.get(
+      boss.phase === "charging" ? GLOBAL_ASSETS.salamandraCharge.id :
+      boss.phase === "exposed" ? GLOBAL_ASSETS.salamandraExposed.id : GLOBAL_ASSETS.salamandra.id,
+    ) ?? this.assets.get(GLOBAL_ASSETS.salamandra.id);
     ctx.save();
+    // Ground shadow, anticipation ring and charge trail make the attack readable.
+    ctx.fillStyle = "rgba(34,12,27,.52)";
+    ctx.beginPath();
+    ctx.ellipse(boss.x + boss.width / 2, 455, 87, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
     if (boss.phase === "warning") {
-      ctx.fillStyle = `rgba(255,75,24,${.15 + Math.sin(view.tick * .35) * .12})`;
-      ctx.fillRect(boss.x - 70, 449, boss.width + 140, 9);
+      const radius = 85 + Math.sin(view.tick * .3) * 9;
+      ctx.strokeStyle = `rgba(255,212,92,${.45 + Math.sin(view.tick * .3) * .3})`;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.ellipse(boss.x + boss.width / 2, 447, radius, 15, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (boss.phase === "charging") {
+      const trail = ctx.createLinearGradient(boss.x - boss.facing * 100, 0, boss.x + boss.width / 2, 0);
+      trail.addColorStop(0, "rgba(255,147,42,0)");
+      trail.addColorStop(1, "rgba(255,166,66,.5)");
+      ctx.fillStyle = trail;
+      ctx.beginPath();
+      ctx.ellipse(boss.x + boss.width / 2 - boss.facing * 52, 421, 85, 24, 0, 0, Math.PI * 2);
+      ctx.fill();
     }
     if (boss.phase === "exposed") {
-      ctx.strokeStyle = "#ffe177";
-      ctx.lineWidth = 3;
+      ctx.fillStyle = `rgba(255,238,121,${.26 + Math.sin(view.tick * .22) * .15})`;
       ctx.beginPath();
-      ctx.arc(boss.x + boss.width / 2, boss.y + 22, 5 + Math.sin(view.tick * .2) * 2, 0, Math.PI * 2);
-      ctx.stroke();
+      ctx.ellipse(boss.x + boss.width / 2, boss.y + 42, 95, 51, 0, 0, Math.PI * 2);
+      ctx.fill();
     }
     if (boss.invulnerable > 0 && view.tick % 6 < 3) ctx.globalAlpha = .55;
     if (image) {
       const source = atlasBounds(image, 1, 1, 0, 0);
-      ctx.translate(boss.x + boss.width / 2, 458);
+      const breathing = Math.sin(boss.age * .12) * .018;
+      const bob = boss.phase === "charging" ? Math.sin(boss.age * .9) * 3 :
+        boss.phase === "exposed" ? 3 + Math.sin(boss.age * .18) * 2 : Math.sin(boss.age * .12) * 2;
+      ctx.translate(boss.x + boss.width / 2, 458 + bob);
       ctx.scale(boss.facing === -1 ? 1 : -1, 1);
-      ctx.drawImage(image, source.x, source.y, source.width, source.height, -boss.width / 2 - 14, -92, boss.width + 28, 92);
+      ctx.rotate(boss.phase === "charging" ? -.055 : boss.phase === "exposed" ? .035 : 0);
+      ctx.scale(boss.phase === "charging" ? 1.08 : 1 + breathing,
+        boss.phase === "warning" ? .94 - breathing : boss.phase === "exposed" ? .91 : 1 - breathing);
+      ctx.drawImage(image, source.x, source.y, source.width, source.height, -94, -127, 188, 127);
     } else {
       ctx.fillStyle = "#f56726";
       ctx.beginPath();
-      ctx.ellipse(boss.x + 52, boss.y + 42, 50, 36, 0, 0, Math.PI * 2);
+      ctx.ellipse(boss.x + boss.width / 2, boss.y + 52, 75, 50, 0, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -308,8 +341,9 @@ export class GameRenderer {
 
   private drawBossHealth(view: RenderState) {
     const boss = view.boss!;
+    const crystal = boss instanceof CrystalGuardianBoss;
     const { ctx } = this;
-    const width = 260, x = (this.logicalWidth - width) / 2;
+    const width = crystal ? 300 : 260, x = (this.logicalWidth - width) / 2;
     ctx.save();
     ctx.fillStyle = "rgba(31,11,31,.88)";
     ctx.fillRect(x - 12, 14, width + 24, 61);
@@ -319,13 +353,27 @@ export class GameRenderer {
     ctx.fillText(boss.name.toUpperCase(), this.logicalWidth / 2, 33);
     ctx.fillStyle = "#522632";
     ctx.fillRect(x, 41, width, 12);
-    ctx.fillStyle = boss.vulnerable ? "#ffe079" : "#ff693d";
+    ctx.fillStyle = boss.vulnerable ? "#ffe079" : crystal ? "#69dcf5" : "#ff693d";
     ctx.fillRect(x, 41, width * boss.health / boss.maxHealth, 12);
+    if (crystal) {
+      ctx.strokeStyle = "rgba(255,255,255,.45)";
+      for (let segment = 1; segment < boss.maxHealth; segment++) {
+        ctx.beginPath(); ctx.moveTo(x + width * segment / boss.maxHealth, 41);
+        ctx.lineTo(x + width * segment / boss.maxHealth, 53); ctx.stroke();
+      }
+    }
     ctx.strokeStyle = "#ffdec2";
     ctx.strokeRect(x, 41, width, 12);
     ctx.font = "bold 10px Arial";
     ctx.fillStyle = "#ffe4be";
-    ctx.fillText(boss.vulnerable ? "¡AHORA! GOLPEA CON LA ESPADA" : "ESQUIVA LA EMBESTIDA · ESPERA SU PAUSA", this.logicalWidth / 2, 69);
+    const hint = boss.vulnerable ? "¡AHORA! GOLPEA EL NÚCLEO" : crystal ?
+      boss.phase === "warningDash" || boss.phase === "dash" ? "EMBESTIDA · SALTA O APÁRTATE" :
+      boss.phase === "warningSlam" || boss.phase === "leap" || boss.phase === "impact" ? "CAÍDA · ALÉJATE DEL CÍRCULO" :
+      boss.phase === "warningWaves" || boss.phase === "waves" ? "ONDAS DE CRISTAL · SALTA" :
+      boss.phase === "warningBolts" || boss.phase === "barrage" ? "PROYECTILES · MUÉVETE" :
+      boss.phase === "stagger" ? "EL GUARDIÁN SE RECOMPONE" : "EL GUARDIÁN DESPIERTA" :
+      "ESQUIVA LA EMBESTIDA · ESPERA SU PAUSA";
+    ctx.fillText(hint, this.logicalWidth / 2, 69);
     ctx.restore();
   }
 

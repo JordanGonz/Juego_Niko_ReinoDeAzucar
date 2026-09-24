@@ -2,6 +2,7 @@ import { AnimationController } from "../animation/AnimationController";
 import { PLAYER_ANIMATION_CLIPS, resolvePlayerState } from "../animation/playerAnimations";
 import { playTone } from "../audio";
 import { SalamandraBoss } from "../bosses/SalamandraBoss";
+import { CrystalGuardianBoss } from "../bosses/CrystalGuardianBoss";
 import { Camera } from "../camera/Camera";
 import { collisionRect, createPlayer, resetPlayer } from "../entities/Player";
 import { classifyEnemyContact, damagePlayerFromEnemy, defeatEnemy } from "../enemies/collision";
@@ -40,7 +41,7 @@ export class Game {
   private readonly player: Player = createPlayer();
   private readonly particles = new ParticleSystem();
   private readonly projectiles = new ProjectileSystem();
-  private boss: SalamandraBoss | null = null;
+  private boss: SalamandraBoss | CrystalGuardianBoss | null = null;
   private readonly animation = new AnimationController<PlayerState>(PLAYER_ANIMATION_CLIPS, "idle");
   private state: GameState = "ready";
   private activeLevel = 0;
@@ -184,7 +185,7 @@ export class Game {
     this.checkpoints = createCheckpoints(this.level);
     this.hazards = createHazards(this.level);
     this.enemies = createEnemies(this.level);
-    this.boss = index === 1 ? new SalamandraBoss() : null;
+    this.boss = index === 1 ? new SalamandraBoss() : index === LEVELS.length - 1 ? new CrystalGuardianBoss() : null;
     this.particles.clear();
     this.projectiles.clear();
     this.animation.setState("idle");
@@ -292,12 +293,14 @@ export class Game {
         this.camera.impulse(1.5,4);
       }});
       if (this.boss?.strike(this.player)) {
-        this.particles.spawnProjectileImpact(this.boss.x + 44, this.boss.y + 40);
+        const crystal = this.boss instanceof CrystalGuardianBoss;
+        this.particles.spawnProjectileImpact(this.boss.x + this.boss.width / 2, this.boss.y + this.boss.height / 2);
+        if (crystal) this.particles.burst(this.boss.x + this.boss.width / 2, this.boss.y + 70, "#85f7ff", 24, 6);
         this.camera.impulse(2.5, 7);
         this.beep(this.boss.defeated ? 950 : 245, .15);
         if (this.boss.defeated) {
-          this.setScore(this.score + 1500);
-          this.particles.burst(this.boss.x + 50, this.boss.y + 30, "#ffcc59", 46);
+          this.setScore(this.score + (crystal ? 4000 : 1500));
+          this.particles.burst(this.boss.x + this.boss.width / 2, this.boss.y + 30, crystal ? "#b2faff" : "#ffcc59", 46);
         }
       }
     }
@@ -307,7 +310,25 @@ export class Game {
     this.updateHazards(config.hurtDuration);
     this.updateEnemies(config.hurtDuration);
     if (this.state !== "playing") return;
+    const previousBossPhase = this.boss?.phase;
     this.boss?.update(this.player);
+    if (this.boss instanceof CrystalGuardianBoss) {
+      if (this.boss.phase === "impact" && previousBossPhase !== "impact") {
+        this.particles.burst(this.boss.x + this.boss.width / 2, FLOOR - 10, "#b4f7ff", 36, 8);
+        this.camera.impulse(3.5, 10);
+        this.beep(130, .2);
+      }
+      if (this.boss.phase === "dash" && this.tick % 4 === 0) {
+        this.particles.burst(this.boss.x + this.boss.width / 2, FLOOR - 12, "#8cefff", 5, 3);
+      }
+      if (this.boss.consumeHazardHit(this.player) && this.player.inv <= 0) {
+        this.hurtPlayer(1, this.player.x < this.boss.x ? -1 : 1, config.hurtDuration);
+      }
+    }
+    if (this.boss?.phase === "charging" && this.tick % 4 === 0) {
+      this.particles.burst(this.boss.x + this.boss.width / 2, FLOOR - 6, "#ff9a3d", 4, 5);
+      if (this.tick % 12 === 0) this.camera.impulse(.6, 2);
+    }
     if (this.boss?.touches(this.player) && this.player.inv <= 0) {
       this.hurtPlayer(1, this.player.x < this.boss.x ? -1 : 1, config.hurtDuration);
     }
@@ -563,7 +584,7 @@ export class Game {
       fixedUpdateRate: FIXED_UPDATE_RATE,
       animationFrame: this.animation.frame,
       attackTimer:this.attackTimer,
-      boss:this.boss && this.activeLevel === 1 ? this.boss : null,
+      boss:this.boss,
     });
   }
 

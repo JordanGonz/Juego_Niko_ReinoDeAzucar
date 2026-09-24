@@ -81,7 +81,19 @@ test("Masked Bandit detecta, persigue y vuelve a patrulla", () => {
   const target=player(); target.x=230; const item=enemy("maskedBandit");
   step(item,context(target),15); assert.equal(item.state,"attack");
   target.x=2000; step(item,context(target),1); assert.equal(item.state,"recover");
-  step(item,context(target),28); assert.equal(item.state,"patrol");
+  step(item,context(target),32); assert.equal(item.state,"patrol");
+});
+
+test("Masked Bandit no cambia de dirección cada frame al cruzarse con Niko", () => {
+  const target=player(); target.x=230; const item=enemy("maskedBandit");
+  step(item,context(target),15);
+  assert.equal(item.state,"attack");
+  const direction=item.facing;
+  target.x=item.x-40;
+  step(item,context(target),8);
+  assert.equal(item.state,"attack");
+  assert.equal(item.facing,direction);
+  assert.ok(item.vx*direction>0);
 });
 
 test("Rolling Rock rebota en sus límites con recuperación legible", () => {

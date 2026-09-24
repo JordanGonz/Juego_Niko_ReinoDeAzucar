@@ -5,43 +5,45 @@ export type BossPhase = "waiting" | "warning" | "charging" | "exposed" | "defeat
 export class SalamandraBoss {
   readonly name = "Salamandra Ígnea";
   readonly maxHealth = 5;
-  readonly width = 104;
-  readonly height = 76;
+  readonly width = 150;
+  readonly height = 100;
   readonly y = 458 - this.height;
   health = this.maxHealth;
-  x = 3885;
+  x = 4120;
   phase: BossPhase = "waiting";
   timer = 0;
   invulnerable = 0;
   facing: -1 | 1 = -1;
   active = false;
+  age = 0;
 
   get defeated() { return this.phase === "defeated"; }
   get vulnerable() { return this.phase === "exposed" && this.invulnerable === 0; }
 
   update(player: Player) {
     if (this.defeated) return;
+    this.age++;
     if (!this.active) {
-      if (player.x < 3500) return;
+      if (player.x < 3710) return;
       this.active = true;
       this.phase = "warning";
-      this.timer = 62;
+      this.timer = 72;
     }
     if (this.invulnerable > 0) this.invulnerable--;
     if (--this.timer > 0) {
-      if (this.phase === "charging") this.x = Math.max(3715, Math.min(3890, this.x + this.facing * 5));
+      if (this.phase === "charging") this.x = Math.max(3830, Math.min(4300, this.x + this.facing * 6));
       return;
     }
     if (this.phase === "warning") {
       this.phase = "charging";
       this.facing = player.x < this.x + this.width / 2 ? -1 : 1;
-      this.timer = 30;
+      this.timer = 48;
     } else if (this.phase === "charging") {
       this.phase = "exposed";
-      this.timer = 95;
+      this.timer = 110;
     } else {
       this.phase = "warning";
-      this.timer = this.health <= 2 ? 38 : 55;
+      this.timer = this.health <= 2 ? 42 : 60;
     }
   }
 

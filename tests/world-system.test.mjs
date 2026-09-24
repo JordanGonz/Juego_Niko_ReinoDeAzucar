@@ -93,11 +93,11 @@ test("coleccionables mantienen bounds y celdas por tipo",()=>{
 });
 
 test("los tres biomas finales registran manifests completos y lazy",()=>{
-  assert.equal(worldAssetManifest("meadow").length,0);for(const biome of ["canyon","cave","crystal"]){assert.equal(worldAssetManifest(biome).length,5);assert.ok(WORLD_ASSETS[biome].far.src.endsWith("far.png"));}
+  assert.equal(worldAssetManifest("meadow").length,0);for(const biome of ["canyon","cave","crystal"]){assert.equal(worldAssetManifest(biome).length,biome==="canyon"?8:biome==="crystal"?6:5);assert.ok(WORLD_ASSETS[biome].far.src.endsWith("far.png"));}
 });
 
-test("el manifiesto global incluye Niko, jefe, ocho enemigos, collectibles y proyectil",()=>{
-  assert.equal(Object.keys(ENEMY_ASSET_BY_TYPE).length,8);assert.equal(GLOBAL_ASSET_MANIFEST.length,12);assert.ok(GLOBAL_ASSET_MANIFEST.some((asset)=>asset.id==="character-niko"));assert.ok(GLOBAL_ASSET_MANIFEST.some((asset)=>asset.id==="boss-salamandra"));
+test("el manifiesto inicial omite al jefe hasta entrar al volcán",()=>{
+  assert.equal(Object.keys(ENEMY_ASSET_BY_TYPE).length,8);assert.equal(GLOBAL_ASSET_MANIFEST.length,11);assert.ok(GLOBAL_ASSET_MANIFEST.some((asset)=>asset.id==="character-niko"));for(const id of ["boss-salamandra","boss-salamandra-charge","boss-salamandra-exposed"]){assert.ok(!GLOBAL_ASSET_MANIFEST.some((asset)=>asset.id===id));assert.ok(worldAssetManifest("canyon").some((asset)=>asset.id===id));}assert.ok(!GLOBAL_ASSET_MANIFEST.some((asset)=>asset.id==="boss-crystal-guardian"));assert.ok(worldAssetManifest("crystal").some((asset)=>asset.id==="boss-crystal-guardian"));
 });
 
 test("AssetManager reporta fallos y conserva fallback",async()=>{

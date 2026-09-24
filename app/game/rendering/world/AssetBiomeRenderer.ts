@@ -3,6 +3,7 @@ import type { Biome } from "../../types.ts";
 import { WORLD_ASSETS } from "../../assets/gameAssets.ts";
 import { LegacyBiomeRenderer } from "./LegacyBiomeRenderer.ts";
 import { drawAtlasCell, isVisibleInCamera } from "./meadowAssets.ts";
+import { drawPlatformSprite } from "./platformSprite.ts";
 import type { BiomeRenderer, WorldRenderContext } from "./types.ts";
 
 const AMBIENT: Record<
@@ -180,7 +181,7 @@ export class AssetBiomeRenderer implements BiomeRenderer {
       return;
     }
 
-    view.level.platforms.forEach(([x, y, w, h]) => {
+    view.level.platforms.forEach(([x, y, w], index) => {
       if (
         !isVisibleInCamera(
           x,
@@ -192,59 +193,7 @@ export class AssetBiomeRenderer implements BiomeRenderer {
         return;
       }
 
-      const ground = y >= 450;
-
-      const column = ground
-        ? 1
-        : w <= 145
-          ? 3
-          : w < 220
-            ? 0
-            : 1;
-
-      const row = ground ? 0 : 1;
-
-      /*
-       * Importante:
-       * dibujamos la plataforma tomando como referencia
-       * EXACTAMENTE su ancho lógico.
-       *
-       * Antes se añadían +36 px al ancho y -18 px al X,
-       * lo que provocaba que la imagen no coincidiera
-       * con la caja amarilla del debug.
-       */
-      const drawX = x;
-      const drawWidth = w;
-
-      /*
-       * La parte visible superior de la plataforma
-       * debe apoyarse en y.
-       */
-      const visualHeight = ground
-        ? Math.max(78, h)
-        : Math.max(36, h);
-
-      const drawY = y;
-
-      ctx.save();
-
-      ctx.shadowColor = "rgba(16,10,35,.20)";
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetY = 5;
-
-      drawAtlasCell(
-        ctx,
-        atlas,
-        { column, row },
-        4,
-        2,
-        drawX,
-        drawY,
-        drawWidth,
-        visualHeight,
-      );
-
-      ctx.restore();
+      drawPlatformSprite(ctx, atlas, { x, y, width: w, biome: this.biome, index });
     });
   }
 

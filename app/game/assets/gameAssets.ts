@@ -4,6 +4,9 @@ import type { AssetDefinition } from "./AssetManager.ts";
 export const GLOBAL_ASSETS={
   niko:{id:"character-niko",src:"/game/characters/niko/niko_atlas.png"},
   salamandra:{id:"boss-salamandra",src:"/game/bosses/salamandra-ignea/sprite.png"},
+  salamandraCharge:{id:"boss-salamandra-charge",src:"/game/bosses/salamandra-ignea/charge.png"},
+  salamandraExposed:{id:"boss-salamandra-exposed",src:"/game/bosses/salamandra-ignea/exposed.png"},
+  crystalGuardian:{id:"boss-crystal-guardian",src:"/game/bosses/guardian-celeste/sprite.png"},
   collectibles:{id:"global-collectibles",src:"/game/worlds/meadow/gameplay/meadow_gameplay_atlas.png"},
   projectile:{id:"projectile-cannonball",src:"/game/projectiles/cannonball/atlas.png"},
   blobHopper:{id:"enemy-blob",src:"/game/enemies/blob/atlas.png"},
@@ -16,7 +19,8 @@ export const GLOBAL_ASSETS={
   rollingRock:{id:"enemy-rock",src:"/game/enemies/rock/atlas.png"},
 } as const satisfies Record<string,AssetDefinition>;
 
-export const GLOBAL_ASSET_MANIFEST=Object.values(GLOBAL_ASSETS);
+const BOSS_ASSET_MANIFEST=[GLOBAL_ASSETS.salamandra,GLOBAL_ASSETS.salamandraCharge,GLOBAL_ASSETS.salamandraExposed,GLOBAL_ASSETS.crystalGuardian];
+export const GLOBAL_ASSET_MANIFEST=Object.values(GLOBAL_ASSETS).filter(asset=>!BOSS_ASSET_MANIFEST.some(boss=>boss.id===asset.id));
 export const ENEMY_ASSET_BY_TYPE:Record<EnemyType,AssetDefinition>={
   blobHopper:GLOBAL_ASSETS.blobHopper,spikeBeetle:GLOBAL_ASSETS.spikeBeetle,roundBat:GLOBAL_ASSETS.roundBat,
   stealthGhost:GLOBAL_ASSETS.stealthGhost,bitePlant:GLOBAL_ASSETS.bitePlant,robotCannon:GLOBAL_ASSETS.robotCannon,
@@ -32,5 +36,8 @@ const world=(folder:string)=>({
 } as const);
 export const WORLD_ASSETS={canyon:world("volcano-or-canyon"),cave:world("crystal-cave"),crystal:world("sky-ruins")} as const;
 export function worldAssetManifest(biome:Biome):readonly AssetDefinition[]{
-  if(biome==="meadow")return[];return Object.values(WORLD_ASSETS[biome]);
+  if(biome==="meadow")return[];
+  if(biome==="canyon")return [...Object.values(WORLD_ASSETS.canyon),GLOBAL_ASSETS.salamandra,GLOBAL_ASSETS.salamandraCharge,GLOBAL_ASSETS.salamandraExposed];
+  if(biome==="crystal")return [...Object.values(WORLD_ASSETS.crystal),GLOBAL_ASSETS.crystalGuardian];
+  return Object.values(WORLD_ASSETS[biome]);
 }
