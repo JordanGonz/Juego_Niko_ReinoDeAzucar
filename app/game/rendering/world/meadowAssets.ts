@@ -3,10 +3,10 @@ import type { AssetDefinition } from "../../assets/AssetManager.ts";
 import type { DecorationType, PickupType } from "../../types.ts";
 
 export const MEADOW_ASSETS={
-  background:{id:"meadow-background",src:"/game/worlds/meadow/background/meadow_far.png"},
-  tiles:{id:"meadow-tiles",src:"/game/worlds/meadow/tiles/meadow_tiles_atlas.png"},
-  decorations:{id:"meadow-decorations",src:"/game/worlds/meadow/decorations/meadow_decorations_atlas.png"},
-  gameplay:{id:"meadow-gameplay",src:"/game/worlds/meadow/gameplay/meadow_gameplay_atlas.png"},
+  background:{id:"meadow-background",src:"/game/worlds/meadow/background/meadow_far.webp"},
+  tiles:{id:"meadow-tiles",src:"/game/worlds/meadow/tiles/meadow_tiles_atlas.webp"},
+  decorations:{id:"meadow-decorations",src:"/game/worlds/meadow/decorations/meadow_decorations_atlas.webp"},
+  gameplay:{id:"meadow-gameplay",src:"/game/worlds/meadow/gameplay/meadow_gameplay_atlas.webp"},
 } as const satisfies Record<string,AssetDefinition>;
 
 export const MEADOW_ASSET_MANIFEST=Object.values(MEADOW_ASSETS);

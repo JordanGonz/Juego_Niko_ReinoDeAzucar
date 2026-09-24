@@ -15,8 +15,12 @@ export class AssetManager {
     const existing=this.pending.get(id); if(existing) return existing;
     const image=this.makeImage();
     const request=new Promise<HTMLImageElement>((resolve,reject)=>{
+      let triedFallback=false;
       image.onload=()=>{this.resources.set(id,image);this.pending.delete(id);resolve(image);};
-      image.onerror=()=>{const error=new Error(`No se pudo cargar ${id}`);this.pending.delete(id);this.failed.set(id,error);reject(error);};
+      image.onerror=()=>{
+        if (!triedFallback && src.endsWith(".webp")) { triedFallback=true; image.src=src.slice(0,-5)+".png"; return; }
+        const error=new Error(`No se pudo cargar ${id}`);this.pending.delete(id);this.failed.set(id,error);reject(error);
+      };
       image.src=src;
     });
     this.pending.set(id,request);return request;

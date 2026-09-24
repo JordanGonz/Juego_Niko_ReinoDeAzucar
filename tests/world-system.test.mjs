@@ -93,7 +93,7 @@ test("coleccionables mantienen bounds y celdas por tipo",()=>{
 });
 
 test("los tres biomas finales registran manifests completos y lazy",()=>{
-  assert.equal(worldAssetManifest("meadow").length,0);for(const biome of ["canyon","cave","crystal"]){assert.equal(worldAssetManifest(biome).length,biome==="canyon"?8:biome==="crystal"?6:5);assert.ok(WORLD_ASSETS[biome].far.src.endsWith("far.png"));}
+  assert.equal(worldAssetManifest("meadow").length,0);for(const biome of ["canyon","cave","crystal"]){assert.equal(worldAssetManifest(biome).length,biome==="canyon"?8:biome==="crystal"?6:5);assert.ok(WORLD_ASSETS[biome].far.src.endsWith("far.webp"));}
 });
 
 test("el manifiesto inicial omite al jefe hasta entrar al volcán",()=>{
@@ -102,6 +102,18 @@ test("el manifiesto inicial omite al jefe hasta entrar al volcán",()=>{
 
 test("AssetManager reporta fallos y conserva fallback",async()=>{
   const manager=new AssetManager(()=>{const fake={onload:null,onerror:null};Object.defineProperty(fake,"src",{set(){queueMicrotask(()=>fake.onerror());}});return fake;});const result=await manager.preload([{id:"missing",src:"/missing.png"}]);assert.equal(result[0].status,"rejected");assert.equal(manager.errors.length,1);assert.equal(manager.get("missing"),null);assert.equal(manager.progress,1);
+});
+
+test("AssetManager usa PNG si el dispositivo no puede abrir WebP", async () => {
+  const requested=[];
+  const manager=new AssetManager(()=>{
+    const fake={onload:null,onerror:null};
+    Object.defineProperty(fake,"src",{set(value){requested.push(value);queueMicrotask(()=>value.endsWith(".webp")?fake.onerror():fake.onload());}});
+    return fake;
+  });
+  await manager.load("sprite","/game/sprite.webp");
+  assert.deepEqual(requested,["/game/sprite.webp","/game/sprite.png"]);
+  assert.equal(manager.has("sprite"),true);
 });
 
 test("AssetManager puede liberar assets de un mundo",async()=>{

@@ -16,11 +16,11 @@ const tiles: Record<string, { size: readonly [number, number]; cells: readonly R
 };
 
 export function explicitAtlasRegion(src: string, column: number, row: number, width: number, height: number) {
-  const world = Object.keys(tiles).find(name => src.endsWith(`/worlds/${name}/tiles/atlas.png`));
+  const world = Object.keys(tiles).find(name => new RegExp(`/worlds/${name}/tiles/atlas\\.(png|webp)$`).test(src));
   let rect: Rect | undefined;
   let size: readonly [number, number] = [1536,1024];
   if (world) { const sheet = tiles[world]; rect = sheet.cells[row*4+column]; size = sheet.size; }
-  if (src.endsWith("/meadow/gameplay/meadow_gameplay_atlas.png") && row === 0) {
+  if (/\/meadow\/gameplay\/meadow_gameplay_atlas\.(png|webp)$/.test(src) && row === 0) {
     rect = ([[45,150,245,350],[335,135,260,370],[620,300,335,195],[995,230,210,230],[1260,220,240,240]] as const)[column];
   }
   if (!rect) return null;

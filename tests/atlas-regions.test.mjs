@@ -10,7 +10,7 @@ test("recortes de los tres mundos no incluyen piezas vecinas", () => {
     for (let row = 0; row < 2; row++) {
       let end = 0;
       for (let column = 0; column < 4; column++) {
-        const rect = explicitAtlasRegion(`/game/worlds/${world}/tiles/atlas.png`, column, row, width, height);
+        const rect = explicitAtlasRegion(`/game/worlds/${world}/tiles/atlas.webp`, column, row, width, height);
         assert.ok(rect.x >= end);
         assert.ok(rect.x + rect.width <= width);
         assert.ok(rect.y + rect.height <= height);
@@ -21,7 +21,7 @@ test("recortes de los tres mundos no incluyen piezas vecinas", () => {
 });
 
 test("la moneda excluye los restos verdes del peligro vecino", () => {
-  const rect = explicitAtlasRegion("/game/worlds/meadow/gameplay/meadow_gameplay_atlas.png", 3, 0, 1536, 1024);
+  const rect = explicitAtlasRegion("/game/worlds/meadow/gameplay/meadow_gameplay_atlas.webp", 3, 0, 1536, 1024);
   assert.equal(rect.x, 995);
   assert.equal(rect.width, 210);
 });

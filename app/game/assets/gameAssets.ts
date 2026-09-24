@@ -2,21 +2,21 @@ import type { EnemyType, Biome } from "../types.ts";
 import type { AssetDefinition } from "./AssetManager.ts";
 
 export const GLOBAL_ASSETS={
-  niko:{id:"character-niko",src:"/game/characters/niko/niko_atlas.png"},
-  salamandra:{id:"boss-salamandra",src:"/game/bosses/salamandra-ignea/sprite.png"},
-  salamandraCharge:{id:"boss-salamandra-charge",src:"/game/bosses/salamandra-ignea/charge.png"},
-  salamandraExposed:{id:"boss-salamandra-exposed",src:"/game/bosses/salamandra-ignea/exposed.png"},
-  crystalGuardian:{id:"boss-crystal-guardian",src:"/game/bosses/guardian-celeste/sprite.png"},
-  collectibles:{id:"global-collectibles",src:"/game/worlds/meadow/gameplay/meadow_gameplay_atlas.png"},
-  projectile:{id:"projectile-cannonball",src:"/game/projectiles/cannonball/atlas.png"},
-  blobHopper:{id:"enemy-blob",src:"/game/enemies/blob/atlas.png"},
-  spikeBeetle:{id:"enemy-beetle",src:"/game/enemies/beetle/atlas.png"},
-  roundBat:{id:"enemy-bat",src:"/game/enemies/bat/atlas.png"},
-  stealthGhost:{id:"enemy-ghost",src:"/game/enemies/ghost/atlas.png"},
-  bitePlant:{id:"enemy-plant",src:"/game/enemies/plant/atlas.png"},
-  robotCannon:{id:"enemy-cannon",src:"/game/enemies/cannon/atlas.png"},
-  maskedBandit:{id:"enemy-bandit",src:"/game/enemies/bandit/atlas.png"},
-  rollingRock:{id:"enemy-rock",src:"/game/enemies/rock/atlas.png"},
+  niko:{id:"character-niko",src:"/game/characters/niko/niko_atlas.webp"},
+  salamandra:{id:"boss-salamandra",src:"/game/bosses/salamandra-ignea/sprite.webp"},
+  salamandraCharge:{id:"boss-salamandra-charge",src:"/game/bosses/salamandra-ignea/charge.webp"},
+  salamandraExposed:{id:"boss-salamandra-exposed",src:"/game/bosses/salamandra-ignea/exposed.webp"},
+  crystalGuardian:{id:"boss-crystal-guardian",src:"/game/bosses/guardian-celeste/sprite.webp"},
+  collectibles:{id:"global-collectibles",src:"/game/worlds/meadow/gameplay/meadow_gameplay_atlas.webp"},
+  projectile:{id:"projectile-cannonball",src:"/game/projectiles/cannonball/atlas.webp"},
+  blobHopper:{id:"enemy-blob",src:"/game/enemies/blob/atlas.webp"},
+  spikeBeetle:{id:"enemy-beetle",src:"/game/enemies/beetle/atlas.webp"},
+  roundBat:{id:"enemy-bat",src:"/game/enemies/bat/atlas.webp"},
+  stealthGhost:{id:"enemy-ghost",src:"/game/enemies/ghost/atlas.webp"},
+  bitePlant:{id:"enemy-plant",src:"/game/enemies/plant/atlas.webp"},
+  robotCannon:{id:"enemy-cannon",src:"/game/enemies/cannon/atlas.webp"},
+  maskedBandit:{id:"enemy-bandit",src:"/game/enemies/bandit/atlas.webp"},
+  rollingRock:{id:"enemy-rock",src:"/game/enemies/rock/atlas.webp"},
 } as const satisfies Record<string,AssetDefinition>;
 
 const BOSS_ASSET_MANIFEST=[GLOBAL_ASSETS.salamandra,GLOBAL_ASSETS.salamandraCharge,GLOBAL_ASSETS.salamandraExposed,GLOBAL_ASSETS.crystalGuardian];
@@ -28,11 +28,11 @@ export const ENEMY_ASSET_BY_TYPE:Record<EnemyType,AssetDefinition>={
 };
 
 const world=(folder:string)=>({
-  far:{id:`${folder}-far`,src:`/game/worlds/${folder}/background/far.png`},
-  mid:{id:`${folder}-mid`,src:`/game/worlds/${folder}/background/mid.png`},
-  tiles:{id:`${folder}-tiles`,src:`/game/worlds/${folder}/tiles/atlas.png`},
-  decorations:{id:`${folder}-decorations`,src:`/game/worlds/${folder}/decorations/atlas.png`},
-  gameplay:{id:`${folder}-gameplay`,src:`/game/worlds/${folder}/gameplay/atlas.png`},
+  far:{id:`${folder}-far`,src:`/game/worlds/${folder}/background/far.webp`},
+  mid:{id:`${folder}-mid`,src:`/game/worlds/${folder}/background/mid.webp`},
+  tiles:{id:`${folder}-tiles`,src:`/game/worlds/${folder}/tiles/atlas.webp`},
+  decorations:{id:`${folder}-decorations`,src:`/game/worlds/${folder}/decorations/atlas.webp`},
+  gameplay:{id:`${folder}-gameplay`,src:`/game/worlds/${folder}/gameplay/atlas.webp`},
 } as const);
 export const WORLD_ASSETS={canyon:world("volcano-or-canyon"),cave:world("crystal-cave"),crystal:world("sky-ruins")} as const;
 export function worldAssetManifest(biome:Biome):readonly AssetDefinition[]{

@@ -21,6 +21,7 @@ import { CrystalGuardianBoss } from "../bosses/CrystalGuardianBoss";
 import { renderCrystalGuardian } from "./boss/CrystalGuardianRenderer";
 import { drawAtlasCell, isVisibleInCamera, MEADOW_ASSET_MANIFEST, pickupAtlasCell } from "./world/meadowAssets.ts";
 import { ENEMY_ASSET_BY_TYPE, GLOBAL_ASSET_MANIFEST, GLOBAL_ASSETS, worldAssetManifest } from "../assets/gameAssets.ts";
+import { canvasPixelRatio } from "./renderQuality.ts";
 
 export class GameRenderer {
   private readonly ctx: CanvasRenderingContext2D;
@@ -33,6 +34,7 @@ export class GameRenderer {
   private logicalWidth = 960;
   private readonly logicalHeight = 540;
   private pixelRatio = 1;
+  private coarsePointer = false;
   private globalReady = false;
   private readonly requestedBiomes = new Set<string>();
 
@@ -51,7 +53,8 @@ export class GameRenderer {
     this.logicalWidth = isPortrait
       ? Math.max(320, Math.round(540 * (bounds.width / Math.max(bounds.height, 1))))
       : 960;
-    this.pixelRatio = Math.max(1, window.devicePixelRatio || 1);
+    this.coarsePointer = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+    this.pixelRatio = canvasPixelRatio(this.logicalWidth, window.devicePixelRatio || 1, this.coarsePointer);
     this.canvas.width = Math.round(this.logicalWidth * this.pixelRatio);
     this.canvas.height = Math.round(this.logicalHeight * this.pixelRatio);
   }
@@ -64,7 +67,7 @@ export class GameRenderer {
     this.ensureBiomeAssets(level.biome);
     ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
+    ctx.imageSmoothingQuality = this.coarsePointer ? "medium" : "high";
     const world = this.worldRenderer.get(view);
     const worldContext = this.worldRenderer.context(ctx, view, width, height, this.assets);
     world.renderBackground(worldContext);
