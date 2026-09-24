@@ -13,9 +13,11 @@ diseño responsive para computadora y celular.
 3. Grutas de Chocolate
 4. Castillo de Cristal
 
-<img width="1652" height="863" alt="image" src="https://github.com/user-attachments/assets/98e7f6be-cc94-4efa-aa55-95916cbc6701" />
+<img width="1662" height="862" alt="image" src="https://github.com/user-attachments/assets/feadacf9-9f67-4bc1-bd38-c33ca1719ad2" />
 
-<img width="1721" height="870" alt="image" src="https://github.com/user-attachments/assets/90a0e7c7-dd0d-4e85-ab00-c20e4995d832" />
+
+<img width="1598" height="861" alt="image" src="https://github.com/user-attachments/assets/34029d38-fcb3-4976-bc03-3197afabe544" />
+
 
 ## Requisitos
 
