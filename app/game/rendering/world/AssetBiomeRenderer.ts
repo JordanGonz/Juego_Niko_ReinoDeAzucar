@@ -51,7 +51,9 @@ export class AssetBiomeRenderer implements BiomeRenderer {
 
   private readonly legacy = new LegacyBiomeRenderer();
 
-  constructor(private readonly biome: Exclude<Biome, "meadow">) {
+  private readonly biome: Exclude<Biome, "meadow">;
+  constructor(biome: Exclude<Biome, "meadow">) {
+    this.biome=biome;
     this.id = `${biome}-assets`;
   }
 
@@ -69,7 +71,7 @@ export class AssetBiomeRenderer implements BiomeRenderer {
     }
 
     if (mid) {
-      const drawHeight = height * 0.58;
+      const drawHeight = height * 0.48;
 
       const drawWidth = Math.max(
         width * 1.55,
@@ -79,12 +81,12 @@ export class AssetBiomeRenderer implements BiomeRenderer {
       const offset = -(view.cameraX * 0.23 % drawWidth);
 
       ctx.save();
-      ctx.globalAlpha = 0.82;
+      ctx.globalAlpha = 0.38;
 
       ctx.drawImage(
         mid,
         offset,
-        FLOOR - drawHeight + 30,
+        FLOOR - drawHeight - 65,
         drawWidth,
         drawHeight,
       );
@@ -92,7 +94,7 @@ export class AssetBiomeRenderer implements BiomeRenderer {
       ctx.drawImage(
         mid,
         offset + drawWidth,
-        FLOOR - drawHeight + 30,
+        FLOOR - drawHeight - 65,
         drawWidth,
         drawHeight,
       );
@@ -177,10 +179,10 @@ export class AssetBiomeRenderer implements BiomeRenderer {
        * debe apoyarse en y.
        */
       const visualHeight = ground
-        ? Math.max(78, h + 45)
-        : Math.max(64, h + 42);
+        ? Math.max(78, h)
+        : Math.max(36, h);
 
-      const drawY = y - 28;
+      const drawY = y;
 
       ctx.save();
 
@@ -306,10 +308,10 @@ export class AssetBiomeRenderer implements BiomeRenderer {
           },
           4,
           2,
-          item.x - 32,
-          item.y - 35,
-          68,
-          68,
+          item.x - 14,
+          item.y,
+          46,
+          58,
         );
       });
 
@@ -332,9 +334,9 @@ export class AssetBiomeRenderer implements BiomeRenderer {
           4,
           2,
           item.x,
-          item.y - 30,
+          item.y,
           item.width,
-          48,
+          item.height,
         );
       });
     }

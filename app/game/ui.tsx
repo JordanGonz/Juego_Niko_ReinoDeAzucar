@@ -1,3 +1,4 @@
+import type { PointerEvent } from "react";
 import { LEVELS } from "./levels";
 import type { GamePower, GameState, Level } from "./types";
 
@@ -63,21 +64,30 @@ export function GameOverlay({ state, score, onStart }: { state: GameState; score
     <div className="overlay">
       <div className="eyebrow">{copy.eyebrow}</div><h1>{copy.title}</h1><p>{copy.text}</p>
       <button type="button" className="play" onClick={onStart}>{state === "ready" ? "VER EL MAPA" : "NUEVA AVENTURA"} <span>→</span></button>
-      <div className="controls"><kbd>←</kbd><kbd>→</kbd> mover <kbd>ESPACIO</kbd> saltar</div>
+      <div className="controls"><kbd>←</kbd><kbd>→</kbd> mover <kbd>ESPACIO</kbd> mantener para saltar alto <kbd>CLIC IZQ. / X</kbd> espada <kbd>P / ESC</kbd> pausa</div>
     </div>
   );
 }
 
 export function MobileControls({ onTouch }: { onTouch: (key: string, pressed: boolean) => void }) {
   const handlers = (key: string) => ({
-    onPointerDown: () => onTouch(key, true), onPointerUp: () => onTouch(key, false),
-    onPointerCancel: () => onTouch(key, false), onPointerLeave: () => onTouch(key, false),
+    onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      onTouch(key, true);
+    },
+    onPointerUp: () => onTouch(key, false),
+    onPointerCancel: () => onTouch(key, false),
+    onLostPointerCapture: () => onTouch(key, false),
   });
   return (
     <div className="mobile-controls"><div className="move-controls">
       <button aria-label="Mover a la izquierda" {...handlers("ArrowLeft")}>←</button>
       <button aria-label="Mover a la derecha" {...handlers("ArrowRight")}>→</button>
-    </div><button className="jump" aria-label="Saltar" {...handlers("Space")}>↑</button></div>
+    </div><div className="action-controls">
+      <button className="attack" aria-label="Atacar con espada" {...handlers("KeyX")}>⚔</button>
+      <button className="jump" aria-label="Saltar" {...handlers("Space")}>↑</button>
+    </div></div>
   );
 }
 

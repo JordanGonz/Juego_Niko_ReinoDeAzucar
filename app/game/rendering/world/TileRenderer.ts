@@ -62,8 +62,8 @@ export class TileRenderer {
 
           const visualHeight =
             style === "ground"
-              ? Math.max(72, height + 40)
-              : Math.max(58, height + 34);
+              ? Math.max(72, height)
+              : Math.max(36, height);
 
           ctx.save();
 
@@ -85,7 +85,7 @@ export class TileRenderer {
 
             // Antes:
             // y - 52
-            y - 24,
+            y,
 
             // Antes:
             // width + 36

@@ -1,3 +1,4 @@
+import { atlasBounds } from "../atlasBounds.ts";
 import type {
   EnemyRenderer,
   EnemyRenderContext,
@@ -14,22 +15,11 @@ export class SpriteEnemyRenderer implements EnemyRenderer {
   render({ ctx, enemy }: EnemyRenderContext) {
     const visual = enemy.visualBounds;
 
-    const sourceX =
-      enemy.animationFrame * this.frameWidth +
-      this.frameInset;
-
-    const sourceY = this.frameInset;
-
-    const sourceWidth = Math.max(
-      1,
-      this.frameWidth - this.frameInset * 2,
-    );
-
-    const sourceHeight = Math.max(
-      1,
-      this.frameHeight - this.frameInset * 2,
-    );
-
+    const state=enemy.animationState;
+    const frames=state==="defeated"?[5]:state==="anticipate"||state==="alert"?[2]:state==="recover"||state==="land"||state==="hurt"?[4]:state==="attack"?[3]:state==="airborne"?[2,3]:state==="phase"?[2]:[0,1];
+    const frame=frames[enemy.animationFrame%frames.length];
+    const source=atlasBounds(this.image,6,1,frame,0);
+    const sourceX=source.x,sourceY=source.y,sourceWidth=source.width,sourceHeight=source.height;
     ctx.save();
 
     ctx.imageSmoothingEnabled = true;

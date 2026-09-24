@@ -17,7 +17,7 @@ export function getGoalX(levelWidth: number) {
   return levelWidth - GOAL_OFFSET;
 }
 
-export const LEVELS: readonly Level[] = [
+const ORIGINAL_LEVELS: readonly Level[] = [
   {
     name: "Pradera de Gomitas",
     mission: "Corre por las colinas y recupera las estrellas de azúcar.",
@@ -614,3 +614,12 @@ export const LEVELS: readonly Level[] = [
     ],
   },
 ] as const;
+
+// Compress only vertical layout, moving collectibles with their platforms.
+// IDs and platform indexes stay stable for saves, enemies and checkpoints.
+const playableY=(y:number)=>FLOOR-(FLOOR-y)*0.52;
+export const LEVELS:readonly Level[]=ORIGINAL_LEVELS.map(level=>({...level,
+  platforms:level.platforms.map(([x,y,w,h])=>[x,playableY(y),w,h] as const),
+  coins:level.coins.map(([x,y])=>[x,playableY(y+46)-46] as const),
+  pickups:level.pickups.map(([x,y,type])=>[x,playableY(y+46)-46,type] as const),
+}));

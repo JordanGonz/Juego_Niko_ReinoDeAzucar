@@ -2,6 +2,7 @@
 @import "./styles/game-layout.css";
 @import "./styles/world-map.css";
 @import "./styles/responsive.css";
+@import "./styles/pause-menu.css";
 
 :root { --ink:#241047; --cream:#fff8e8; --pink:#ff3d77; --yellow:#ffe047; }
 * { box-sizing:border-box; }

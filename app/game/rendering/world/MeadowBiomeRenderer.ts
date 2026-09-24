@@ -51,12 +51,12 @@ export class MeadowBiomeRenderer implements BiomeRenderer{
     this.decorations.renderLayer(ctx,view.level,"gameplay",view.tick,decorations,view.cameraX,width);
     view.checkpoints.forEach((checkpoint)=>{
       if(!isVisibleInCamera(checkpoint.x,80,view.cameraX,width))return;
-      if(gameplay){drawAtlasCell(ctx,gameplay,checkpointAtlasCell(checkpoint.activated),5,2,checkpoint.x-49,checkpoint.y-44,104,104);return;}
+      if(gameplay){drawAtlasCell(ctx,gameplay,checkpointAtlasCell(checkpoint.activated),5,2,checkpoint.x-14,checkpoint.y,46,58);return;}
       ctx.save();ctx.translate(checkpoint.x,checkpoint.y);ctx.shadowColor=checkpoint.activated?"#ffe25a":"rgba(40,30,70,.25)";ctx.shadowBlur=checkpoint.activated?18:5;
       ctx.fillStyle="#e0b447";ctx.fillRect(-3,0,6,58);ctx.fillStyle=checkpoint.activated?"#22cbbd":"#5a93a2";ctx.beginPath();ctx.moveTo(3,5);ctx.quadraticCurveTo(25,11,38,3);ctx.lineTo(38,26);ctx.quadraticCurveTo(23,32,3,24);ctx.closePath();ctx.fill();
       ctx.fillStyle="#ffe35b";ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?4:9;ctx.lineTo(20+Math.cos(a)*r,15+Math.sin(a)*r);}ctx.closePath();ctx.fill();ctx.restore();
     });
-    view.hazards.forEach((hazard)=>{if(!isVisibleInCamera(hazard.x,hazard.width,view.cameraX,width))return;if(gameplay)drawAtlasCell(ctx,gameplay,{column:2,row:0},5,2,hazard.x-12,hazard.y-45,hazard.width+24,70);else spike(ctx,hazard.x,hazard.y,hazard.width);});
+    view.hazards.forEach((hazard)=>{if(!isVisibleInCamera(hazard.x,hazard.width,view.cameraX,width))return;if(gameplay)drawAtlasCell(ctx,gameplay,{column:2,row:0},5,2,hazard.x,hazard.y,hazard.width,hazard.height);else spike(ctx,hazard.x,hazard.y,hazard.width);});
   }
   renderForeground({ctx,view,assets,width}:WorldRenderContext){
     ctx.save();ctx.translate(-view.cameraX*.1,0);ctx.globalAlpha=.68;this.decorations.renderLayer(ctx,view.level,"foreground",view.tick,assets.get(MEADOW_ASSETS.decorations.id),view.cameraX*1.1,width);ctx.restore();

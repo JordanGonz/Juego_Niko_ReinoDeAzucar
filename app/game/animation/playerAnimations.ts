@@ -67,7 +67,7 @@ export const PLAYER_ANIMATION_CLIPS: Record<
   },
 
   victory: {
-    frames: [25, 26, 25, 26],
+    frames: [26, 27, 26, 27],
     frameDuration: 0.12,
     loop: true,
   },

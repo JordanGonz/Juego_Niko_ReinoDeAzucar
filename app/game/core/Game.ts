@@ -18,6 +18,7 @@ import { clampPlayerX } from "../physics/movement";
 import { applyGravity, applyJumpCut, bufferJump, consumeBufferedJump, moveTowards, refreshCoyoteTime, updatePlayerTimers } from "../physics/playerMovement";
 import { movementForLevel } from "../physics/tuning";
 import { GameRenderer } from "../rendering/GameRenderer";
+import { attackHits, ATTACK_COOLDOWN, ATTACK_DURATION } from "../systems/AttackSystem";
 import { ParticleSystem } from "../systems/ParticleSystem";
 import { damagePlayerFromProjectile, ProjectileSystem } from "../systems/ProjectileSystem";
 import { activateCheckpoint, checkpointTouchesPlayer, createCheckpoints, resolveRespawnPosition } from "../systems/CheckpointSystem";
@@ -43,6 +44,7 @@ export class Game {
   private activeLevel = 0;
   private level = LEVELS[0];
   private score = 0;
+  private levelStart = { score: 0, lives: 3 };
   private coins = 0;
   private lives = 3;
   private unlockedLevel = 0;
@@ -51,6 +53,8 @@ export class Game {
   private lastSafe = { x: 100, y: FLOOR - this.player.collisionBounds.height };
   private tick = 0;
   private finishTimer = 0;
+  private attackCooldown=0;
+  private attackTimer=0;
   private finishTarget: "map" | "won" = "map";
   private coinList: RuntimeCoin[] = this.level.coins.map(([x, y]) => ({ x, y, taken: false }));
   private pickupList: RuntimePickup[] = this.level.pickups.map(([x, y, type]) => ({ x, y, type, taken: false }));
@@ -72,6 +76,8 @@ export class Game {
     this.input = new InputManager({
       onPrimaryAction: () => this.primaryAction(),
       onToggleDebug: () => { this.debug = !this.debug; },
+      onTogglePause: () => this.togglePause(),
+      onFocusLost: () => this.pause(),
     });
     this.loop = new GameLoop(
       (stepSeconds) => this.update(stepSeconds),
@@ -106,26 +112,68 @@ export class Game {
   }
 
   playLevel(index: number) {
+    if (!Number.isInteger(index) || index < 0 || index > this.unlockedLevel || index >= LEVELS.length) return;
     this.input.clear();
     this.command = { type: "loadLevel", index };
     this.setState("playing");
     this.beep(620, 0.12);
   }
 
-  setTouch(code: string, pressed: boolean) { this.input.setTouch(code, pressed); }
+  pause() {
+    if (this.state !== "playing") return;
+    this.input.clear();
+    this.setState("paused");
+  }
+
+  togglePause() {
+    if (this.state === "playing") this.pause();
+    else if (this.state === "paused") {
+      this.input.clear();
+      this.setState("playing");
+    }
+  }
+
+  restartLevel() {
+    if (this.state !== "paused") return;
+    this.setScore(this.levelStart.score);
+    this.setLives(this.levelStart.lives);
+    this.playLevel(this.activeLevel);
+  }
+
+  returnToMap() {
+    if (this.state !== "paused") return;
+    this.input.clear();
+    this.command = null;
+    this.setScore(this.levelStart.score);
+    this.setLives(this.levelStart.lives);
+    this.setCoins(0);
+    this.activePower = "";
+    this.powerTimer = 0;
+    this.emit({ type: "powerChanged", value: "" });
+    this.setState("map");
+  }
+
+  setTouch(code: string, pressed: boolean) { if (this.state === "playing") this.input.setTouch(code, pressed); }
+  attack() {
+    if (this.state !== "playing") return;
+    this.input.setTouch("KeyX", true);
+    this.input.setTouch("KeyX", false);
+  }
   setSound(enabled: boolean) { this.sound = enabled; }
   private resize = () => this.renderer.resize();
 
   private primaryAction() {
-    if (this.state !== "playing" && this.state !== "map") this.newGame();
+    if (["ready", "won", "lost"].includes(this.state)) this.newGame();
   }
 
   private loadLevel(index: number) {
+    this.levelStart = { score: this.score, lives: this.lives };
     this.activeLevel = index;
     this.level = LEVELS[index];
     resetPlayer(this.player);
     this.camera.reset();
     this.finishTimer = 0;
+    this.attackCooldown=0;this.attackTimer=0;
     this.lastSafe = { x: 100, y: FLOOR - this.player.collisionBounds.height };
     this.setCoins(0);
     this.activePower = ""; this.powerTimer = 0; this.emit({ type: "powerChanged", value: "" });
@@ -147,7 +195,6 @@ export class Game {
   }
 
   private update(stepSeconds: number) {
-    this.tick++;
     if (this.command?.type === "newGame") { this.resetGame(); this.command = null; }
     if (this.command?.type === "loadLevel") {
       const requestedLevel = this.command.index;
@@ -155,6 +202,8 @@ export class Game {
       this.loadLevel(requestedLevel);
     }
 
+    if (this.state === "paused") { this.input.endStep(); return; }
+    this.tick++;
     if (this.state === "playing") this.updatePlaying(stepSeconds);
     else {
       updatePlayerTimers(this.player, stepSeconds);
@@ -229,6 +278,17 @@ export class Game {
       this.player.runDustTimer = config.runDustInterval;
     }
 
+    this.attackCooldown=Math.max(0,this.attackCooldown-1);
+    this.attackTimer=Math.max(0,this.attackTimer-1);
+    if(this.input.wasPressed("KeyX","KeyJ")&&this.attackCooldown===0){
+      this.attackCooldown=ATTACK_COOLDOWN;this.attackTimer=ATTACK_DURATION;
+      this.beep(460,.07);
+      this.enemies.forEach(enemy=>{if(attackHits(this.player,enemy)){
+        if(defeatEnemy(enemy,this.particles))this.setScore(this.score+250);
+        this.particles.spawnProjectileImpact(enemy.x+enemy.collisionBounds.width/2,enemy.y+enemy.collisionBounds.height/2);
+        this.camera.impulse(1.5,4);
+      }});
+    }
     this.collectCoins();
     this.collectPickups();
     this.updateCheckpoints();
@@ -459,6 +519,7 @@ export class Game {
   }
 
   private render(timestamp: number) {
+    if (this.state === "paused") return;
     this.updateFps(timestamp);
     this.renderer.render({
       level: this.level,
@@ -480,6 +541,7 @@ export class Game {
       fps: this.fps,
       fixedUpdateRate: FIXED_UPDATE_RATE,
       animationFrame: this.animation.frame,
+      attackTimer:this.attackTimer,
     });
   }
 

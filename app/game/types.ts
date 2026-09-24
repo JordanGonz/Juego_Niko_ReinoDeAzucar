@@ -1,4 +1,4 @@
-export type GameState = "ready" | "map" | "playing" | "finishing" | "won" | "lost";
+export type GameState = "ready" | "map" | "playing" | "paused" | "finishing" | "won" | "lost";
 export type Biome = "meadow" | "canyon" | "cave" | "crystal";
 export type PickupType = "heart" | "shield" | "boost";
 export type GamePower = "" | "ESCUDO" | "TURBO";
@@ -121,4 +121,5 @@ export type RenderState = {
   fps: number;
   fixedUpdateRate: number;
   animationFrame: number;
+  attackTimer?:number;
 };

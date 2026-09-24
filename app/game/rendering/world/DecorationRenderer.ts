@@ -10,7 +10,7 @@ export class DecorationRenderer{
     if(item.type==="grass"||item.type==="tree")ctx.rotate(Math.sin(tick*.025+item.x*.01)*.008);
     ctx.scale(s,s);
     if(atlas){
-      const sizes={tree:[150,190],bush:[120,82],flowerPatch:[105,72],rock:[100,78],grass:[95,72],mushroom:[92,82]} as const;
+      const sizes={tree:[150,190],bush:[75,35],flowerPatch:[65,24],rock:[50,30],grass:[55,32],mushroom:[32,30]} as const;
       const [width,height]=sizes[item.type];drawAtlasCell(ctx,atlas,decorationAtlasCell(item.type,v),4,2,-width/2,-height,width,height);ctx.restore();return;
     }
     if(item.type==="tree"){

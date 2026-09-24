@@ -13,6 +13,7 @@ export class ParticleSystem {
   }
 
   burst(x: number, y: number, color: string, count = 10, speed = 6) {
+    if(this.particles.length>240)this.particles.splice(0,this.particles.length-240);
     for (let index = 0; index < count; index++) {
       this.particles.push({
         x, y,
@@ -24,7 +25,7 @@ export class ParticleSystem {
     }
   }
 
-  spawnJumpDust(player: Player) { this.dust(player.x + 15, player.y + player.collisionBounds.height, 5); }
+  spawnJumpDust(player: Player) { this.dust(player.x + 15, player.y + player.collisionBounds.height, 9); this.burst(player.x+15,player.y+player.collisionBounds.height,"#8affef",7,4); }
   spawnLandDust(player: Player, strong = false) { this.dust(player.x + 15, player.y + player.collisionBounds.height, strong ? 11 : 7); }
   spawnRunDust(player: Player) { this.dust(player.x + (player.facing > 0 ? 4 : 26), player.y + player.collisionBounds.height, 2); }
   spawnSkidDust(player: Player) { this.dust(player.x + 15, player.y + player.collisionBounds.height, 6); }

@@ -281,10 +281,17 @@ export class GameRenderer {
     view.particles.forEach((particle) => {
       ctx.globalAlpha = Math.max(0, particle.life / 45); ctx.fillStyle = particle.color;
       const size = particle.size ?? 8;
-      ctx.fillRect(particle.x - size / 2, particle.y - size / 2, size, size);
+      ctx.beginPath();ctx.arc(particle.x,particle.y,size/2,0,Math.PI*2);ctx.fill();
     });
     ctx.globalAlpha = 1;
     this.playerRenderer.render({ ctx, player: view.player, frame: view.animationFrame, tick, power: view.activePower });
+    if((view.attackTimer??0)>0){
+      const progress=1-(view.attackTimer??0)/10;
+      ctx.save();ctx.translate(view.player.x+15,view.player.y+24);ctx.scale(view.player.facing,1);
+      ctx.globalAlpha=1-progress*.6;ctx.strokeStyle="#a1fff1";ctx.shadowColor="#30e8e0";ctx.shadowBlur=12;ctx.lineWidth=7;
+      ctx.beginPath();ctx.arc(8,0,48,-1.3+progress*.7,1.1+progress*.7);ctx.stroke();
+      ctx.rotate(-1+progress*2);ctx.fillStyle="#fff5ac";ctx.fillRect(9,-3,46,6);ctx.fillStyle="#f3b631";ctx.fillRect(12,-10,5,20);ctx.restore();
+    }
     world.renderForeground(worldContext);
     ctx.restore();
 

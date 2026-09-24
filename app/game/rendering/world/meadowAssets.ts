@@ -1,3 +1,4 @@
+import { atlasBounds } from "../atlasBounds.ts";
 import type { AssetDefinition } from "../../assets/AssetManager.ts";
 import type { DecorationType, PickupType } from "../../types.ts";
 
@@ -37,23 +38,12 @@ export function drawAtlasCell(
   dy: number,
   dw: number,
   dh: number,
-  inset = 1,
 ) {
-  const atlas = image as HTMLImageElement;
-
-  const atlasWidth = atlas.naturalWidth || atlas.width;
-  const atlasHeight = atlas.naturalHeight || atlas.height;
-
-  const cellWidth = atlasWidth / columns;
-  const cellHeight = atlasHeight / rows;
-
-  const sx = cell.column * cellWidth + inset;
-  const sy = cell.row * cellHeight + inset;
-  const sw = Math.max(1, cellWidth - inset * 2);
-  const sh = Math.max(1, cellHeight - inset * 2);
+  const bounds = atlasBounds(image,columns,rows,cell.column,cell.row);
+  const sx=bounds.x,sy=bounds.y,sw=bounds.width,sh=bounds.height;
 
   ctx.drawImage(
-    atlas,
+    image,
     sx,
     sy,
     sw,

@@ -1,23 +1,24 @@
-type InputOptions = { onPrimaryAction: () => void; onToggleDebug: () => void };
+type InputOptions = { onPrimaryAction: () => void; onToggleDebug: () => void; onTogglePause: () => void; onFocusLost: () => void };
 
 export class InputManager {
   private keys: Record<string, boolean> = {};
   private pressed = new Set<string>();
   private released = new Set<string>();
 
-  constructor(private readonly options: InputOptions) {}
+  private readonly options: InputOptions;
+  constructor(options: InputOptions) { this.options = options; }
 
   attach() {
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
-    window.addEventListener("blur", this.clear);
+    window.addEventListener("blur", this.onFocusLost);
     document.addEventListener("visibilitychange", this.onVisibilityChange);
   }
 
   detach() {
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
-    window.removeEventListener("blur", this.clear);
+    window.removeEventListener("blur", this.onFocusLost);
     document.removeEventListener("visibilitychange", this.onVisibilityChange);
     this.clear();
   }
@@ -44,6 +45,13 @@ export class InputManager {
   };
 
   private onKeyDown = (event: KeyboardEvent) => {
+    if (event.defaultPrevented) return;
+    if (event.code === "KeyP" || event.code === "Escape") {
+      event.preventDefault();
+      if (!event.repeat) this.options.onTogglePause();
+      return;
+    }
+    if (event.target instanceof Element && event.target.closest("button, input, textarea, select, [contenteditable], dialog")) return;
     if (!this.keys[event.code]) this.pressed.add(event.code);
     this.keys[event.code] = true;
     if (["ArrowLeft", "ArrowRight", "ArrowUp", "Space"].includes(event.code)) event.preventDefault();
@@ -56,5 +64,6 @@ export class InputManager {
     this.keys[event.code] = false;
   };
 
-  private onVisibilityChange = () => { if (document.hidden) this.clear(); };
+  private onFocusLost = () => { this.clear(); this.options.onFocusLost(); };
+  private onVisibilityChange = () => { if (document.hidden) this.onFocusLost(); };
 }
