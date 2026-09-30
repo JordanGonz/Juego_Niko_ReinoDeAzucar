@@ -11,9 +11,9 @@ export function renderCrystalGuardian(ctx: CanvasRenderingContext2D, boss: Cryst
   // Each attack announces its danger zone before becoming harmful.
   if (boss.phase === "warningDash") {
     ctx.fillStyle = `rgba(76,235,255,${.13 + pulse * .22})`;
-    ctx.fillRect(4430, FLOOR - 27, 930, 26);
+    ctx.fillRect(4430, FLOOR - 27, 1540, 26);
     ctx.strokeStyle = "#adfaff"; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(4430, FLOOR - 28); ctx.lineTo(5360, FLOOR - 28); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(4430, FLOOR - 28); ctx.lineTo(5970, FLOOR - 28); ctx.stroke();
   }
   if (boss.phase === "warningSlam" || boss.phase === "leap") {
     ctx.strokeStyle = `rgba(121,247,255,${.48 + pulse * .48})`;
@@ -35,9 +35,9 @@ export function renderCrystalGuardian(ctx: CanvasRenderingContext2D, boss: Cryst
   }
   if (boss.phase === "warningWaves") {
     ctx.fillStyle = `rgba(100,231,255,${.18 + pulse * .22})`;
-    ctx.fillRect(4430, FLOOR - 18, 930, 18);
+    ctx.fillRect(4430, FLOOR - 18, 1540, 18);
     ctx.strokeStyle = "#b2faff"; ctx.lineWidth = 3;
-    for (let x = 4450; x < 5350; x += 54) {
+    for (let x = 4450; x < 5950; x += 54) {
       ctx.beginPath(); ctx.moveTo(x, FLOOR - 21); ctx.lineTo(x + 18, FLOOR - 34); ctx.lineTo(x + 36, FLOOR - 21); ctx.stroke();
     }
   }
@@ -65,7 +65,7 @@ export function renderCrystalGuardian(ctx: CanvasRenderingContext2D, boss: Cryst
   else if (boss.phase === "barrage") ctx.rotate(Math.sin(tick * .18) * .035);
   if (image) {
     const source = atlasBounds(image, 1, 1, 0, 0);
-    ctx.drawImage(image, source.x, source.y, source.width, source.height, -153, -212, 306, 212);
+    ctx.drawImage(image, source.x, source.y, source.width, source.height, -136, -190, 272, 190);
   } else {
     ctx.fillStyle = "#e8f6ed"; ctx.strokeStyle = "#51c9e9"; ctx.lineWidth = 7;
     ctx.beginPath(); ctx.roundRect(-96, -159, 192, 150, 32); ctx.fill(); ctx.stroke();

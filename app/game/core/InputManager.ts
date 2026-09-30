@@ -1,4 +1,4 @@
-type InputOptions = { onPrimaryAction: () => void; onToggleDebug: () => void; onTogglePause: () => void; onFocusLost: () => void };
+type InputOptions = { onPrimaryAction: () => void; onToggleDebug: () => void; onTogglePause: () => void; onToggleAtlas?: () => void; onFocusLost: () => void };
 
 export class InputManager {
   private keys: Record<string, boolean> = {};
@@ -49,6 +49,11 @@ export class InputManager {
     if (event.code === "KeyP" || event.code === "Escape") {
       event.preventDefault();
       if (!event.repeat) this.options.onTogglePause();
+      return;
+    }
+    if (event.code === "KeyM") {
+      event.preventDefault();
+      if (!event.repeat) this.options.onToggleAtlas?.();
       return;
     }
     if (event.target instanceof Element && event.target.closest("button, input, textarea, select, [contenteditable], dialog")) return;

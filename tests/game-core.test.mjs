@@ -7,7 +7,7 @@ import { consumeFixedSteps, FIXED_STEP_MS } from "../app/game/core/GameLoop.ts";
 import { createInitialSession, nextUnlockedLevel } from "../app/game/core/session.ts";
 import { landPlayer } from "../app/game/physics/collision.ts";
 import { clampPlayerX, moveEnemy } from "../app/game/physics/movement.ts";
-import { applyGravity, applyJumpCut, bufferJump, consumeBufferedJump } from "../app/game/physics/playerMovement.ts";
+import { applyGravity, applyJumpCut, bufferJump, consumeAirJump, consumeBufferedJump } from "../app/game/physics/playerMovement.ts";
 import { PLAYER_MOVEMENT } from "../app/game/physics/tuning.ts";
 
 test("la colisión aterriza usando el ancho inferior de la hitbox", () => {
@@ -46,6 +46,14 @@ test("jugador y cámara respetan sus límites", () => {
   assert.equal(Camera.clamp(3000, 3600, 960), 2640);
 });
 
+test("la cámara encuadra a Niko y al jefe sin perder el borde del mundo", () => {
+  const camera = new Camera();
+  for (let frame = 0; frame < 100; frame++) camera.follow(4020, 0, 5200, 960, 4615);
+  assert.ok(4020 - camera.x > 100);
+  assert.ok(4615 - camera.x < 850);
+  assert.ok(camera.x >= 0 && camera.x <= 4240);
+});
+
 test("coyote time permite consumir un salto después de abandonar el borde", () => {
   const player = createPlayer();
   player.grounded = false; player.coyoteTimer = 0.08;
@@ -67,6 +75,16 @@ test("jump buffer espera hasta que el jugador toque suelo", () => {
 test("jump cut reduce suavemente la velocidad ascendente", () => {
   assert.equal(applyJumpCut(-12, 0.55), -6.6000000000000005);
   assert.equal(applyJumpCut(4, 0.55), 4);
+});
+
+test("el salto doble exige desbloqueo y solo funciona una vez antes de aterrizar", () => {
+  const player = createPlayer();
+  player.grounded = false;
+  player.airJumpAvailable = true;
+  assert.equal(consumeAirJump(player, false, true, 13.8, .07), false);
+  assert.equal(consumeAirJump(player, true, true, 13.8, .07), true);
+  assert.ok(player.vy < -12);
+  assert.equal(consumeAirJump(player, true, true, 13.8, .07), false);
 });
 
 test("la gravedad respeta la velocidad terminal", () => {

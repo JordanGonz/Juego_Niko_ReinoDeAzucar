@@ -11,10 +11,15 @@ export class Camera {
     this.x = 0; this.lookAhead = 0; this.shakeStrength = 0; this.shakeTimer = 0; this.shakeX = 0;
   }
 
-  follow(playerX: number, velocityX: number, levelWidth: number, viewportWidth: number) {
+  follow(playerX: number, velocityX: number, levelWidth: number, viewportWidth: number,
+    encounterX?: number) {
     const desiredLookAhead = Math.max(-54, Math.min(54, velocityX * 8));
     this.lookAhead += (desiredLookAhead - this.lookAhead) * 0.08;
-    this.x += ((playerX - 280 + this.lookAhead) - this.x) * 0.08;
+    const soloTarget = playerX - 280 + this.lookAhead;
+    const encounterTarget = encounterX === undefined ? soloTarget :
+      Math.max(playerX - viewportWidth + 110,
+        Math.min(playerX - 110, (playerX + encounterX) / 2 - viewportWidth / 2));
+    this.x += (encounterTarget - this.x) * 0.08;
     this.x = Camera.clamp(this.x, levelWidth, viewportWidth);
     this.updateShake();
   }

@@ -26,7 +26,9 @@
   .map-heading { margin-bottom:32px; }
   .map-heading h2 { font-size:28px; letter-spacing:-1px; }
   .map-heading p { font-size:14px; }
-  .map-route { grid-template-columns:repeat(2,minmax(0,1fr)); gap:42px 14px; padding-top:12px; }
+  .map-ability { margin:-15px auto 43px; padding:8px 12px; font-size:9px; }
+    .map-route { grid-template-columns:repeat(2,minmax(0,1fr)); gap:42px 14px; padding-top:12px; }
+    .map-route::after { display:none; }
   .map-route::before { display:none; }
   .map-stop,.map-stop:nth-child(even) { min-height:126px; padding:45px 8px 12px; transform:none; }
   .map-stop:not(:disabled):hover,.map-stop:nth-child(even):not(:disabled):hover { transform:scale(1.02); }
@@ -37,7 +39,9 @@
   footer span { display:none; }
   footer b { font-size:8px; letter-spacing:1.5px; }
 }
-@media (max-width:350px) {
+  @media (max-width:350px) {
+    .mobile-controls:has(.dash) button:not(.gate-action) { width:46px; height:46px; font-size:22px; }
+    .mobile-controls:has(.dash) .move-controls,.mobile-controls:has(.dash) .action-controls { gap:6px; }
   .mobile-controls button { width:52px; height:52px; }
   .move-controls,.action-controls { gap:8px; }
   .brand strong { display:none; }
@@ -62,6 +66,7 @@
   .world-map { justify-content:flex-start; padding:14px 5%; }
   .map-heading { margin-bottom:25px; }
   .map-heading p { display:none; }
+  .map-ability { margin:-15px auto 30px; padding:5px 10px; font-size:8px; }
   .map-heading h2 { font-size:25px; }
   .map-route { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
   .map-stop,.map-stop:nth-child(even) { min-height:105px; padding:37px 7px 8px; transform:none; }

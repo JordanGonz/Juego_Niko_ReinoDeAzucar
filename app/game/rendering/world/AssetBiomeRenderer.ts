@@ -144,6 +144,18 @@ export class AssetBiomeRenderer implements BiomeRenderer {
     ctx.closePath();
     ctx.fill();
     ctx.shadowBlur = 0;
+    // Heat distortion stays behind the platforms; keep it lightweight on phones.
+    for (let ribbon = 0; ribbon < 5; ribbon++) {
+      const baseline = 434 + ribbon * 10;
+      ctx.strokeStyle = `rgba(255,219,139,${.055 + ribbon * .014})`;
+      ctx.lineWidth = 2 + ribbon * .3;
+      ctx.beginPath();
+      for (let x = 0; x <= width + 24; x += 24) {
+        const y = baseline + Math.sin(x * .016 + tick * .055 + ribbon) * 4;
+        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
     for (let i = 0; i < 22; i++) {
       const x = (i * 167 + tick * (i % 2 ? 1.4 : -.7) + width * 4) % width;
       const y = 487 + (i * 37) % Math.max(18, height - 490);
@@ -156,8 +168,8 @@ export class AssetBiomeRenderer implements BiomeRenderer {
     ctx.globalAlpha = 1;
     for (let i = 0; i < 8; i++) {
       const x = (i * 149 + tick * .55) % width;
-      const rise = (tick * (1 + i % 3) + i * 47) % 66;
-      ctx.fillStyle = `rgba(255,208,91,${(1 - rise / 66) * .8})`;
+      const rise = (tick * (1 + i % 3) + i * 47) % 100;
+      ctx.fillStyle = `rgba(255,208,91,${(1 - rise / 100) * .8})`;
       ctx.beginPath();
       ctx.arc(x, 478 - rise, 2 + i % 3, 0, Math.PI * 2);
       ctx.fill();

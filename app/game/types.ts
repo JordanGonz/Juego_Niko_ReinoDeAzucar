@@ -1,4 +1,4 @@
-export type GameState = "ready" | "map" | "playing" | "paused" | "finishing" | "won" | "lost";
+export type GameState = "ready" | "map" | "atlas" | "playing" | "paused" | "finishing" | "won" | "lost";
 export type Biome = "meadow" | "canyon" | "cave" | "crystal";
 export type PickupType = "heart" | "shield" | "boost";
 export type GamePower = "" | "ESCUDO" | "TURBO";
@@ -53,6 +53,9 @@ export type Player = {
   skidTimer: number;
   hurtTimer: number;
   runDustTimer: number;
+  airJumpAvailable: boolean;
+  dashAvailable: boolean;
+  dashTimer: number;
 };
 
 export type RuntimeEnemy = {
@@ -99,7 +102,8 @@ export type GameEvent =
   | { type: "coinsChanged"; value: number }
   | { type: "livesChanged"; value: number }
   | { type: "powerChanged"; value: GamePower }
-  | { type: "unlockedLevelChanged"; value: number };
+  | { type: "unlockedLevelChanged"; value: number }
+  | { type: "adventureChanged"; visited: number[]; completed: number[]; coins: number[]; currentRegion: number };
 
 export type RenderState = {
   level: Level;
@@ -122,5 +126,7 @@ export type RenderState = {
   fixedUpdateRate: number;
   animationFrame: number;
   attackTimer?:number;
+  unlockedLevel: number;
+  zoneBannerTimer: number;
   boss?: import("./bosses/SalamandraBoss").SalamandraBoss | import("./bosses/CrystalGuardianBoss").CrystalGuardianBoss | null;
 };

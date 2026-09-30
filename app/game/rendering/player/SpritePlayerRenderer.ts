@@ -29,6 +29,12 @@ export class SpritePlayerRenderer
     private readonly sheet: SpriteSheet,
   ) {}
 
+  prepareFrames() {
+    for (let frame = 0; frame < 28; frame++) {
+      this.getFrame(frame, 7, frame % 7, Math.floor(frame / 7));
+    }
+  }
+
   render({
     ctx,
     player,
@@ -84,7 +90,9 @@ export class SpritePlayerRenderer
   private getFrame(frame: number, columns: number, column: number, row: number): HTMLCanvasElement {
     const cached = this.frames.get(frame);
     if (cached) return cached;
-    const canvas = isolatedAtlasFrame(this.sheet.image, columns, 4, column, row);
+    const canvas = isolatedAtlasFrame(this.sheet.image, columns, 4, column, row,
+      row === 3 ? { left: 72, right: 72, top: 7, bottom: 7 } :
+        { left: 30, right: 8, top: 7, bottom: 7 });
     this.frames.set(frame, canvas);
     return canvas;
   }

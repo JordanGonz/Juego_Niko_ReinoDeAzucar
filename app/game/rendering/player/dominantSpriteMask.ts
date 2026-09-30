@@ -1,9 +1,11 @@
 /** Keep the pose in a cell, not pieces of its neighboring atlas poses. */
-export function dominantSpriteMask(pixels: Uint8ClampedArray, width: number, height: number): Uint8Array {
+export function dominantSpriteMask(pixels: Uint8ClampedArray, width: number, height: number,
+  preferredX?: number): Uint8Array {
   const count = width * height;
   const visited = new Uint8Array(count);
   const queue = new Int32Array(count);
   let largest: number[] = [];
+  let bestScore = -1;
 
   for (let start = 0; start < count; start++) {
     if (visited[start] || pixels[start * 4 + 3] <= 100) continue;
@@ -26,7 +28,10 @@ export function dominantSpriteMask(pixels: Uint8ClampedArray, width: number, hei
         queue[tail++] = neighbor;
       }
     }
-    if (component.length > largest.length) largest = component;
+    const center = component.reduce((sum, index) => sum + index % width, 0) / component.length;
+    const distance = preferredX === undefined ? 0 : Math.abs(center - preferredX);
+    const score = component.length / (1 + (distance / 70) ** 2);
+    if (score > bestScore) { largest = component; bestScore = score; }
   }
 
   const mask = new Uint8Array(count);

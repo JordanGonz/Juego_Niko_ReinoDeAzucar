@@ -48,6 +48,8 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [2350, 342, 180, 28],
       [2650, 267, 170, 28],
       [3130, 335, 180, 28],
+      // Ruta opcional para volver tras obtener el salto doble en el volcán.
+      [3190, -55, 195, 28],
     ],
 
     coins: [
@@ -68,6 +70,8 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [3185, 288],
       [3270, 288],
       [3400, 395],
+      [3250, -105],
+      [3325, -105],
     ],
 
     pickups: [
@@ -279,7 +283,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
   {
     name: "Cañón de Caramelo",
     mission: "Cruza la lava y derrota a la Salamandra Ígnea.",
-    width: 4600,
+    width: 5200,
     biome: "canyon",
     friction: 0.68,
     jumpForce: 14.2,
@@ -297,7 +301,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [1900, FLOOR, 390, 24],
       [2460, FLOOR, 510, 24],
       [3140, FLOOR, 360, 24],
-      [3660, FLOOR, 940, 24],
+      [3660, FLOOR, 1540, 24],
 
       [250, 340, 150, 28],
       [730, 315, 150, 28],
@@ -311,6 +315,8 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [3200, 315, 145, 28],
       [3410, 225, 140, 28],
       [3720, 320, 150, 28],
+      [4170, 325, 145, 28],
+      [4700, 320, 145, 28],
     ],
 
     coins: [
@@ -333,6 +339,8 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [3760, 273],
       [4050, 395],
       [4270, 395],
+      [4610, 395],
+      [4770, 395],
     ],
 
     pickups: [
@@ -399,7 +407,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [1170, FLOOR, 390, 24],
       [1710, FLOOR, 470, 24],
       [2340, FLOOR, 400, 24],
-      [2910, FLOOR, 450, 24],
+      [2910, FLOOR, 110, 24],
       [3520, FLOOR, 360, 24],
       [4030, FLOOR, 370, 24],
 
@@ -417,6 +425,8 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [3560, 325, 150, 28],
       [3780, 225, 140, 28],
       [4080, 325, 150, 28],
+      // Grieta de descenso hacia la ruta alta de la Pradera.
+      [3170, FLOOR, 190, 24],
     ],
 
     coins: [
@@ -477,7 +487,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       },
       {
         type: "stealthGhost",
-        x: 3100,
+        x: 2970,
         platformIndex: 5,
       },
       {
@@ -498,7 +508,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
   {
     name: "Castillo de Cristal",
     mission: "Cruza el hielo y derrota al Guardián Celeste de la torre real.",
-    width: 5700,
+    width: 6250,
     biome: "crystal",
     friction: 0.92,
     jumpForce: 13.6,
@@ -517,7 +527,7 @@ const ORIGINAL_LEVELS: readonly Level[] = [
       [2470, FLOOR, 470, 24],
       [3110, FLOOR, 410, 24],
       [3690, FLOOR, 400, 24],
-      [4240, FLOOR, 1460, 24],
+      [4240, FLOOR, 2010, 24],
 
       [220, 325, 145, 28],
       [690, 285, 145, 28],

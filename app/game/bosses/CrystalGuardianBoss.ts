@@ -11,7 +11,7 @@ export type CrystalBolt = { x: number; y: number; vx: number; vy: number; radius
 export type CrystalWave = { x: number; vx: number; width: number; life: number };
 
 const ARENA_LEFT = 4450;
-const ARENA_RIGHT = 5220;
+const ARENA_RIGHT = 5800;
 
 export class CrystalGuardianBoss {
   readonly name = "Guardián Celeste";
@@ -21,7 +21,7 @@ export class CrystalGuardianBoss {
   readonly bolts: CrystalBolt[] = [];
   readonly waves: CrystalWave[] = [];
   health = this.maxHealth;
-  x = 5050;
+  x = 5220;
   y = FLOOR - this.height;
   phase: CrystalPhase = "waiting";
   timer = 0;

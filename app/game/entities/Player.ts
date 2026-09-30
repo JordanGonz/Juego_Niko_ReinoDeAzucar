@@ -24,6 +24,9 @@ export function createPlayer(): Player {
     skidTimer: 0,
     hurtTimer: 0,
     runDustTimer: 0,
+    airJumpAvailable: false,
+    dashAvailable: false,
+    dashTimer: 0,
   };
 }
 

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { InputManager } from "../app/game/core/InputManager.ts";
+import { emptyAdventureSave } from "../app/game/core/adventureSave.ts";
 
 // Load the controller without creating a canvas or driving the user's game.
 const source = readFileSync(new URL("../app/game/core/Game.ts", import.meta.url), "utf8");
@@ -18,6 +19,7 @@ function controller(state = "playing") {
     score: 900, lives: 2, coins: 3, activeLevel: 1, unlockedLevel: 2,
     levelStart: { score: 200, lives: 3 }, tick: 80,
     activePower: "TURBO", powerTimer: 120, attackTimer: 6,
+    adventure: emptyAdventureSave(), coinList: [], pickupList: [], checkpoints: [], boss: null,
     emit() {}, beep() {},
   });
   return game;
@@ -37,22 +39,22 @@ test("pausa congela simulación, poderes, ataques y renderizado", () => {
   assert.equal(game.state, "playing");
 });
 
-test("reiniciar restaura el inicio del nivel sin duplicar puntos", () => {
+test("reiniciar conserva el progreso del nivel", () => {
   const game = controller("paused");
   game.restartLevel();
   assert.deepEqual(game.command, { type: "loadLevel", index: 1 });
-  assert.equal(game.score, 200);
-  assert.equal(game.lives, 3);
+  assert.equal(game.score, 900);
+  assert.equal(game.lives, 2);
   assert.equal(game.state, "playing");
 });
 
-test("salir descarta el intento pero conserva los mundos desbloqueados", () => {
+test("salir conserva el progreso y los mundos desbloqueados", () => {
   const game = controller("paused");
   game.returnToMap();
   assert.equal(game.state, "map");
   assert.equal(game.unlockedLevel, 2);
-  assert.equal(game.score, 200);
-  assert.equal(game.coins, 0);
+  assert.equal(game.score, 900);
+  assert.equal(game.coins, 3);
   assert.equal(game.activePower, "");
 });
 
@@ -69,6 +71,20 @@ test("P y Escape alternan una sola vez; perder foco limpia las teclas", () => {
   assert.equal(input.isDown("ArrowRight"), false);
   assert.equal(input.wasPressed("ArrowRight"), false);
   assert.equal(focusLost, 1);
+});
+
+test("M abre y cierra el atlas sin cargar otra región", () => {
+  const game = controller();
+  game.toggleAtlas();
+  assert.equal(game.state, "atlas");
+  assert.equal(game.command, null);
+  game.toggleAtlas();
+  assert.equal(game.state, "playing");
+  let atlasToggles = 0;
+  const input = new InputManager({ onPrimaryAction() {}, onToggleDebug() {}, onTogglePause() {}, onToggleAtlas() { atlasToggles++; }, onFocusLost() {} });
+  input.onKeyDown({ code: "KeyM", repeat: false, preventDefault() {} });
+  input.onKeyDown({ code: "KeyM", repeat: true, preventDefault() {} });
+  assert.equal(atlasToggles, 1);
 });
 
 test("no se pausa el mapa, la victoria ni la animación de meta", () => {

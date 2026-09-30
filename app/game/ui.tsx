@@ -14,7 +14,7 @@ export function GameHud(props: HudProps) {
     <header className="topbar">
       <div className="brand"><span className="brand-mark">N</span><div><strong>NIKO</strong><span>y el Reino de Azúcar</span></div></div>
       <div className="hud">
-        <span><small>{state === "map" ? "RUTA" : "NIVEL"}</small>{state === "map" ? unlockedLevel + 1 : levelIndex + 1}/{LEVELS.length}</span>
+        <span><small>{state === "map" || state === "atlas" ? "RUTA" : "NIVEL"}</small>{state === "map" || state === "atlas" ? unlockedLevel + 1 : levelIndex + 1}/{LEVELS.length}</span>
         <span><small>PUNTOS</small>{score.toString().padStart(6, "0")}</span>
         <span><small>ESTRELLAS</small>✦ {coins}/{coinGoal}</span>
         <span><small>VIDAS</small>{"♥".repeat(Math.max(0, lives))}</span>
@@ -29,24 +29,33 @@ export function PowerBadge({ power }: { power: GamePower }) {
   return <div className={`power-badge power-${power.toLowerCase()}`}><span>{power === "ESCUDO" ? "◆" : "⚡"}</span>{power}</div>;
 }
 
-export function WorldMap({ unlockedLevel, onPlay }: { unlockedLevel: number; onPlay: (index: number) => void }) {
+export function WorldMap({ unlockedLevel, adventure, onPlay }: { unlockedLevel: number; adventure: { visited: number[]; completed: number[]; coins: number[]; currentRegion: number }; onPlay: (index: number) => void }) {
   const icons = ["✿", "☀", "◆", "♛"];
   return (
     <div className="world-map">
-      <div className="map-heading"><div className="eyebrow">MAPA DEL REINO DE AZÚCAR</div><h2>Elige tu próximo mundo</h2><p>Supera cada parada para abrir el camino hacia el castillo.</p></div>
+      <div className="map-heading"><div className="eyebrow">ATLAS DEL REINO DE AZÚCAR</div><h2>Un reino para explorar</h2><p>Avanza a pie por los extremos de cada región. Puedes regresar; los caminos no son botones de teletransporte.</p></div>
+      <div className={`map-ability ${unlockedLevel >= 2 ? "obtained" : ""}`}>
+        <span aria-hidden="true">✦</span>
+        {unlockedLevel >= 2 ? "SALTO DOBLE DESBLOQUEADO · Pulsa salto otra vez en el aire. Regresa a las alturas de la Pradera." :
+          "PODER POR DESCUBRIR · La Salamandra guarda un movimiento que abrirá rutas anteriores."}
+      </div>
+      {unlockedLevel >= 3 && <div className="map-ability obtained"><span aria-hidden="true">➤</span>IMPULSO ASTRAL · Shift / C o botón en celular. Atraviesa distancias largas y vuelve por tesoros.</div>}
       <div className="map-route" aria-label="Ruta de niveles">
         {LEVELS.map((world, index) => {
           const locked = index > unlockedLevel;
-          const completed = index < unlockedLevel;
+          const current = index === adventure.currentRegion;
+          const completed = adventure.completed.includes(index);
+          const visited = adventure.visited.includes(index);
           return (
-            <button type="button" key={world.name} className={`map-stop biome-${world.biome}${completed ? " completed" : ""}`} disabled={locked} onClick={() => onPlay(index)} aria-label={locked ? `${world.name}, bloqueado` : `Jugar ${world.name}`}>
-              <span className="map-node">{locked ? "🔒" : completed ? "✓" : icons[index]}</span>
+            <button type="button" key={world.name} className={`map-stop biome-${world.biome}${completed ? " completed" : ""}${current ? " current" : ""}${locked ? " locked" : ""}`} disabled={!current} onClick={() => onPlay(index)} aria-label={current ? `Continuar en ${world.name}` : `${world.name}, llega caminando`}>
+              <span className="map-node">{locked ? "🔒" : icons[index]}{completed && <i aria-label="completado">✓</i>}</span>
               <span className="map-number">MUNDO {index + 1}</span><strong>{world.name}</strong>
-              <small>{locked ? "BLOQUEADO" : completed ? "COMPLETADO · REPETIR" : "JUGAR AHORA"}</small>
+              <small>{locked ? "POR DESCUBRIR" : `${adventure.coins[index] ?? 0}/${world.coins.length} estrellas · ${current ? "CONTINUAR AQUÍ" : completed ? "EXPLORADO" : visited ? "DESCUBIERTO" : "RUTA FUTURA"}`}</small>
             </button>
           );
         })}
       </div>
+      <div className="map-ability obtained">RUTA CONTINUA · Pradera → Cañón → Grutas → Castillo. Un paso alto con doble salto une la Pradera y las Grutas.</div>
       <div className="pickup-legend" aria-label="Objetos especiales">
         <span><b className="legend-heart">♥</b> Recupera vida</span><span><b className="legend-shield">◆</b> Escudo protector</span><span><b className="legend-boost">⚡</b> Turbo y supersalto</span>
       </div>
@@ -64,12 +73,12 @@ export function GameOverlay({ state, score, onStart }: { state: GameState; score
     <div className="overlay">
       <div className="eyebrow">{copy.eyebrow}</div><h1>{copy.title}</h1><p>{copy.text}</p>
       <button type="button" className="play" onClick={onStart}>{state === "ready" ? "VER EL MAPA" : "NUEVA AVENTURA"} <span>→</span></button>
-      <div className="controls"><kbd>←</kbd><kbd>→</kbd> mover <kbd>ESPACIO</kbd> mantener para saltar alto <kbd>CLIC IZQ. / X</kbd> espada <kbd>P / ESC</kbd> pausa</div>
+      <div className="controls"><kbd>←</kbd><kbd>→</kbd> mover <kbd>ESPACIO</kbd> saltar / doble salto <kbd>CLIC IZQ. / X</kbd> espada <kbd>SHIFT / C</kbd> impulso <kbd>M</kbd> mapa <kbd>P / ESC</kbd> pausa</div>
     </div>
   );
 }
 
-export function MobileControls({ onTouch }: { onTouch: (key: string, pressed: boolean) => void }) {
+export function MobileControls({ onTouch, dashUnlocked }: { onTouch: (key: string, pressed: boolean) => void; dashUnlocked: boolean }) {
   const handlers = (key: string) => ({
     onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
       event.preventDefault();
@@ -85,6 +94,7 @@ export function MobileControls({ onTouch }: { onTouch: (key: string, pressed: bo
       <button aria-label="Mover a la izquierda" {...handlers("ArrowLeft")}>←</button>
       <button aria-label="Mover a la derecha" {...handlers("ArrowRight")}>→</button>
     </div><div className="action-controls">
+      {dashUnlocked && <button className="dash" aria-label="Impulso astral" {...handlers("KeyC")}>➤</button>}
       <button className="attack" aria-label="Atacar con espada" {...handlers("KeyX")}>⚔</button>
       <button className="jump" aria-label="Saltar" {...handlers("Space")}>↑</button>
     </div></div>
@@ -92,5 +102,6 @@ export function MobileControls({ onTouch }: { onTouch: (key: string, pressed: bo
 }
 
 export function GameFooter({ state, levelIndex, level }: { state: GameState; levelIndex: number; level: Level }) {
-  return <footer><span>{state === "map" ? "RUTA PRINCIPAL" : `CAPÍTULO ${String(levelIndex + 1).padStart(2, "0")}`}</span><b>{state === "map" ? "MAPA DEL REINO" : level.name.toUpperCase()}</b><span>{state === "map" ? "ELIGE UN MUNDO" : level.mission.toUpperCase()}</span></footer>;
+  const mapOpen = state === "map" || state === "atlas";
+  return <footer><span>{mapOpen ? "RUTA PRINCIPAL" : `CAPÍTULO ${String(levelIndex + 1).padStart(2, "0")}`}</span><b>{mapOpen ? "MAPA DEL REINO" : level.name.toUpperCase()}</b><span>{mapOpen ? "CAMINA PARA EXPLORAR" : level.mission.toUpperCase()}</span></footer>;
 }

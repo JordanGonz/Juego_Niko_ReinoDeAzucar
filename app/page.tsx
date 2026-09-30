@@ -19,6 +19,7 @@ export default function Home() {
   const [unlockedLevel, setUnlockedLevel] = useState(0);
   const [power, setPower] = useState<GamePower>("");
   const [sound, setSound] = useState(true);
+  const [adventure, setAdventure] = useState({ visited: [] as number[], completed: [] as number[], coins: [] as number[], currentRegion: 0 });
 
   const handleGameEvent = useCallback((event: GameEvent) => {
     switch (event.type) {
@@ -29,6 +30,7 @@ export default function Home() {
       case "livesChanged": setLives(event.value); break;
       case "powerChanged": setPower(event.value); break;
       case "unlockedLevelChanged": setUnlockedLevel(event.value); break;
+      case "adventureChanged": setAdventure({ visited: event.visited, completed: event.completed, coins: event.coins, currentRegion: event.currentRegion }); break;
     }
   }, []);
 
@@ -53,6 +55,7 @@ export default function Home() {
   const restartLevel = useCallback(() => gameRef.current?.restartLevel(), []);
   const exitToMap = useCallback(() => gameRef.current?.returnToMap(), []);
   const playLevel = useCallback((index: number) => gameRef.current?.playLevel(index), []);
+  const toggleAtlas = useCallback(() => gameRef.current?.toggleAtlas(), []);
   const touch = useCallback((key: string, pressed: boolean) => gameRef.current?.setTouch(key, pressed), []);
   const toggleSound = useCallback(() => {
     setSound((enabled) => {
@@ -73,13 +76,15 @@ export default function Home() {
             event.currentTarget.focus({ preventScroll: true });
             gameRef.current?.attack();
           }}
-          aria-label="Juego Niko. Clic izquierdo para atacar. P o Escape para pausar." />
+          aria-label="Juego Niko. Clic izquierdo para atacar. Camina por los extremos para pasar entre regiones. P o Escape para pausar." />
         {state === "playing" && <PowerBadge power={power} />}
-        {state === "map" && <WorldMap unlockedLevel={unlockedLevel} onPlay={playLevel} />}
-        {state !== "playing" && state !== "paused" && state !== "finishing" && state !== "map" && <GameOverlay state={state} score={score} onStart={startGame} />}
+        {state === "map" && <WorldMap unlockedLevel={unlockedLevel} adventure={adventure} onPlay={playLevel} />}
+        {state === "atlas" && <WorldMap unlockedLevel={unlockedLevel} adventure={adventure} onPlay={toggleAtlas} />}
+        {state !== "playing" && state !== "paused" && state !== "finishing" && state !== "map" && state !== "atlas" && <GameOverlay state={state} score={score} onStart={startGame} />}
         {state === "playing" && <button type="button" className="pause-trigger" onClick={pauseGame} aria-label="Pausar juego (P o Escape)">Ⅱ Pausa</button>}
+        {state === "playing" && <button type="button" className="atlas-trigger" onClick={toggleAtlas} aria-label="Abrir mapa (M)">✧ Mapa</button>}
         {state === "paused" && <PauseMenu levelName={level.name} onResume={resumeGame} onRestart={restartLevel} onExit={exitToMap} />}
-        {state === "playing" && <MobileControls onTouch={touch} />}
+        {state === "playing" && <MobileControls onTouch={touch} dashUnlocked={unlockedLevel >= 3} />}
       </section>
       <GameFooter state={state} levelIndex={levelIndex} level={level} />
     </main>

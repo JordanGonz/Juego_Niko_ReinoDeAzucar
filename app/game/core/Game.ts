@@ -12,12 +12,11 @@ import {
   FLOOR,
   LEVELS,
   MAX_LIVES,
-  PROGRESS_KEY,
   getGoalX,
 } from "../levels";
 import { landPlayer } from "../physics/collision";
 import { clampPlayerX } from "../physics/movement";
-import { applyGravity, applyJumpCut, bufferJump, consumeBufferedJump, moveTowards, refreshCoyoteTime, updatePlayerTimers } from "../physics/playerMovement";
+import { applyGravity, applyJumpCut, bufferJump, consumeAirJump, consumeBufferedJump, moveTowards, refreshCoyoteTime, updatePlayerTimers } from "../physics/playerMovement";
 import { movementForLevel } from "../physics/tuning";
 import { GameRenderer } from "../rendering/GameRenderer";
 import { attackHits, ATTACK_COOLDOWN, ATTACK_DURATION } from "../systems/AttackSystem";
@@ -28,9 +27,11 @@ import { createHazards, damagePlayerFromHazard, hazardHitsPlayer } from "../syst
 import type { GameEvent, GamePower, GameState, Player, PlayerState, RuntimeCheckpoint, RuntimeCoin, RuntimeEnemy, RuntimeHazard, RuntimePickup } from "../types";
 import { FIXED_UPDATE_RATE, GameLoop } from "./GameLoop";
 import { InputManager } from "./InputManager";
-import { createInitialSession, nextUnlockedLevel } from "./session";
+import { nextUnlockedLevel } from "./session";
+import { emptyAdventureSave, readAdventureSave, writeAdventureSave, type AdventureSave } from "./adventureSave";
+import { resolveWorldExit } from "./worldConnections";
 
-type GameCommand = { type: "newGame" } | { type: "loadLevel"; index: number };
+type GameCommand = { type: "loadLevel"; index: number; spawn?: { x: number; y: number } };
 const JUMP_KEYS = ["ArrowUp", "KeyW", "Space"] as const;
 
 export class Game {
@@ -47,18 +48,18 @@ export class Game {
   private activeLevel = 0;
   private level = LEVELS[0];
   private score = 0;
-  private levelStart = { score: 0, lives: 3 };
   private coins = 0;
   private lives = 3;
   private unlockedLevel = 0;
+  private adventure: AdventureSave = emptyAdventureSave();
   private activePower: GamePower = "";
   private powerTimer = 0;
   private lastSafe = { x: 100, y: FLOOR - this.player.collisionBounds.height };
   private tick = 0;
   private finishTimer = 0;
+  private zoneBannerTimer = 0;
   private attackCooldown=0;
   private attackTimer=0;
-  private finishTarget: "map" | "won" = "map";
   private coinList: RuntimeCoin[] = this.level.coins.map(([x, y]) => ({ x, y, taken: false }));
   private pickupList: RuntimePickup[] = this.level.pickups.map(([x, y, type]) => ({ x, y, type, taken: false }));
   private checkpoints: RuntimeCheckpoint[] = createCheckpoints(this.level);
@@ -80,6 +81,7 @@ export class Game {
       onPrimaryAction: () => this.primaryAction(),
       onToggleDebug: () => { this.debug = !this.debug; },
       onTogglePause: () => this.togglePause(),
+      onToggleAtlas: () => this.toggleAtlas(),
       onFocusLost: () => this.pause(),
     });
     this.loop = new GameLoop(
@@ -89,9 +91,12 @@ export class Game {
   }
 
   start() {
-    const saved = Number.parseInt(window.localStorage.getItem(PROGRESS_KEY) ?? "0", 10);
-    this.unlockedLevel = Number.isFinite(saved) ? Math.max(0, Math.min(LEVELS.length - 1, saved)) : 0;
+    this.adventure = readAdventureSave(window.localStorage);
+    this.unlockedLevel = this.adventure.unlockedLevel;
+    this.setScore(this.adventure.score);
+    this.setLives(this.adventure.lives);
     this.emit({ type: "unlockedLevelChanged", value: this.unlockedLevel });
+    this.emitAdventure();
     this.renderer.resize();
     window.addEventListener("resize", this.resize);
     this.input.attach();
@@ -107,15 +112,16 @@ export class Game {
 
   newGame() {
     this.input.clear();
-    this.command = { type: "newGame" };
-    this.setScore(0); this.setLives(3); this.setCoins(0);
-    this.emit({ type: "levelChanged", value: 0, coinGoal: LEVELS[0].coins.length });
+    this.command = { type: "loadLevel", index: this.adventure.currentRegion };
+    if (this.lives <= 0) this.setLives(3);
+    this.setCoins(0);
+    this.emit({ type: "levelChanged", value: this.adventure.currentRegion, coinGoal: LEVELS[this.adventure.currentRegion].coins.length });
     this.setState("map");
     this.beep(520, 0.12);
   }
 
   playLevel(index: number) {
-    if (!Number.isInteger(index) || index < 0 || index > this.unlockedLevel || index >= LEVELS.length) return;
+    if (index !== this.adventure.currentRegion || index < 0 || index >= LEVELS.length) return;
     this.input.clear();
     this.command = { type: "loadLevel", index };
     this.setState("playing");
@@ -130,16 +136,21 @@ export class Game {
 
   togglePause() {
     if (this.state === "playing") this.pause();
+    else if (this.state === "atlas") { this.input.clear(); this.setState("playing"); }
     else if (this.state === "paused") {
       this.input.clear();
       this.setState("playing");
     }
   }
 
+  toggleAtlas() {
+    if (this.state === "playing") { this.input.clear(); this.persistAdventure(); this.setState("atlas"); }
+    else if (this.state === "atlas") { this.input.clear(); this.setState("playing"); }
+  }
+
   restartLevel() {
     if (this.state !== "paused") return;
-    this.setScore(this.levelStart.score);
-    this.setLives(this.levelStart.lives);
+    this.persistAdventure();
     this.playLevel(this.activeLevel);
   }
 
@@ -147,9 +158,7 @@ export class Game {
     if (this.state !== "paused") return;
     this.input.clear();
     this.command = null;
-    this.setScore(this.levelStart.score);
-    this.setLives(this.levelStart.lives);
-    this.setCoins(0);
+    this.persistAdventure();
     this.activePower = "";
     this.powerTimer = 0;
     this.emit({ type: "powerChanged", value: "" });
@@ -169,44 +178,46 @@ export class Game {
     if (["ready", "won", "lost"].includes(this.state)) this.newGame();
   }
 
-  private loadLevel(index: number) {
-    this.levelStart = { score: this.score, lives: this.lives };
+  private loadLevel(index: number, spawn?: { x: number; y: number }) {
     this.activeLevel = index;
     this.level = LEVELS[index];
     resetPlayer(this.player);
+    if (spawn) { this.player.x = spawn.x; this.player.y = spawn.y; this.player.grounded = false; }
     this.camera.reset();
+    this.camera.respawn(this.player.x, this.level.width, this.renderer.viewportWidth);
     this.finishTimer = 0;
+    this.zoneBannerTimer = 132;
     this.attackCooldown=0;this.attackTimer=0;
-    this.lastSafe = { x: 100, y: FLOOR - this.player.collisionBounds.height };
-    this.setCoins(0);
+    this.lastSafe = { x: this.player.x, y: this.player.y };
+    const progress = this.adventure.regions[index];
+    this.setCoins(progress.coins.length);
     this.activePower = ""; this.powerTimer = 0; this.emit({ type: "powerChanged", value: "" });
-    this.coinList = this.level.coins.map(([x, y]) => ({ x, y, taken: false }));
-    this.pickupList = this.level.pickups.map(([x, y, type]) => ({ x, y, type, taken: false }));
+    this.coinList = this.level.coins.map(([x, y], coinIndex) => ({ x, y, taken: progress.coins.includes(coinIndex) }));
+    this.pickupList = this.level.pickups.map(([x, y, type], pickupIndex) => ({ x, y, type, taken: progress.pickups.includes(pickupIndex) }));
     this.checkpoints = createCheckpoints(this.level);
+    const checkpoint = this.checkpoints.find((item) => item.id === progress.checkpointId);
+    if (checkpoint) this.lastSafe = activateCheckpoint(this.checkpoints, checkpoint);
     this.hazards = createHazards(this.level);
     this.enemies = createEnemies(this.level);
     this.boss = index === 1 ? new SalamandraBoss() : index === LEVELS.length - 1 ? new CrystalGuardianBoss() : null;
+    if (this.boss && progress.bossDefeated) this.boss.phase = "defeated";
     this.particles.clear();
     this.projectiles.clear();
     this.animation.setState("idle");
+    if (!this.adventure.visitedLevels.includes(index)) this.adventure.visitedLevels.push(index);
+    this.adventure.currentRegion = index;
+    this.persistAdventure();
     this.emit({ type: "levelChanged", value: index, coinGoal: this.level.coins.length });
   }
 
-  private resetGame() {
-    const session = createInitialSession();
-    this.setScore(session.score); this.setLives(session.lives);
-    this.loadLevel(session.levelIndex);
-  }
-
   private update(stepSeconds: number) {
-    if (this.command?.type === "newGame") { this.resetGame(); this.command = null; }
     if (this.command?.type === "loadLevel") {
-      const requestedLevel = this.command.index;
+      const { index, spawn } = this.command;
       this.command = null;
-      this.loadLevel(requestedLevel);
+      this.loadLevel(index, spawn);
     }
 
-    if (this.state === "paused") { this.input.endStep(); return; }
+    if (this.state === "paused" || this.state === "atlas") { this.input.endStep(); return; }
     this.tick++;
     if (this.state === "playing") this.updatePlaying(stepSeconds);
     else {
@@ -224,22 +235,37 @@ export class Game {
   }
 
   private updatePlaying(stepSeconds: number) {
+    if (this.zoneBannerTimer > 0) this.zoneBannerTimer--;
     const config = movementForLevel(this.level);
     updatePlayerTimers(this.player, stepSeconds);
     refreshCoyoteTime(this.player, config.coyoteTime);
+    if (this.player.grounded) {
+      this.player.airJumpAvailable = this.unlockedLevel >= 2;
+      this.player.dashAvailable = this.unlockedLevel >= 3;
+    }
     if (this.input.wasPressed(...JUMP_KEYS)) bufferJump(this.player, config.jumpBufferTime);
     if (this.input.wasReleased(...JUMP_KEYS)) this.player.vy = applyJumpCut(this.player.vy, config.jumpCutMultiplier);
 
     const left = this.input.isDown("ArrowLeft", "KeyA");
     const right = this.input.isDown("ArrowRight", "KeyD");
     const direction = left ? -1 : right ? 1 : 0;
+    if (this.unlockedLevel >= 3 && this.player.dashAvailable && this.input.wasPressed("ShiftLeft", "ShiftRight", "KeyC")) {
+      this.player.dashAvailable = false;
+      this.player.dashTimer = 11;
+      if (direction) this.player.facing = direction;
+      this.player.vy = 0;
+      this.particles.burst(this.player.x + 15, this.player.y + 26, "#8af9ef", 22, 4);
+      this.beep(650, .1);
+    }
     const maxSpeed = this.activePower === "TURBO" ? config.boostMaxRunSpeed : config.maxRunSpeed;
     const changingDirection = direction !== 0 && Math.sign(this.player.vx) !== direction && Math.abs(this.player.vx) >= config.skidThreshold;
     if (changingDirection) {
       if (this.player.skidTimer <= 0) this.particles.spawnSkidDust(this.player);
       this.player.skidTimer = config.skidDuration;
     }
-    if (direction !== 0) {
+    if (this.player.dashTimer > 0) {
+      this.player.vx = this.player.facing * 14;
+    } else if (direction !== 0) {
       const acceleration = this.player.grounded ? config.groundAcceleration : config.airAcceleration;
       this.player.vx = moveTowards(this.player.vx, direction * maxSpeed, acceleration);
       this.player.facing = direction;
@@ -252,9 +278,18 @@ export class Game {
     if (consumeBufferedJump(this.player, jumpVelocity, config.jumpStartDuration)) {
       this.particles.spawnJumpDust(this.player);
       this.beep(310, 0.08);
+    } else if (consumeAirJump(this.player, this.unlockedLevel >= 2,
+      this.input.wasPressed(...JUMP_KEYS), jumpVelocity, config.jumpStartDuration)) {
+      this.particles.burst(this.player.x + 15, this.player.y + 42, "#7af7ef", 16, 3);
+      this.camera.impulse(1, 3);
+      this.beep(610, .09);
     }
 
-    this.player.vy = applyGravity(this.player.vy, config);
+    if (this.player.dashTimer > 0) {
+      this.player.vy = 0;
+      this.player.dashTimer--;
+      if (this.tick % 2 === 0) this.particles.burst(this.player.x + 15, this.player.y + 22, "#7deef2", 3, 2);
+    } else this.player.vy = applyGravity(this.player.vy, config);
     const bodyBeforeMove = collisionRect(this.player);
     const oldBottom = bodyBeforeMove.y + bodyBeforeMove.height;
     const impactVelocity = this.player.vy;
@@ -301,6 +336,7 @@ export class Game {
         if (this.boss.defeated) {
           this.setScore(this.score + (crystal ? 4000 : 1500));
           this.particles.burst(this.boss.x + this.boss.width / 2, this.boss.y + 30, crystal ? "#b2faff" : "#ffcc59", 46);
+          this.persistAdventure();
         }
       }
     }
@@ -324,6 +360,11 @@ export class Game {
       if (this.boss.consumeHazardHit(this.player) && this.player.inv <= 0) {
         this.hurtPlayer(1, this.player.x < this.boss.x ? -1 : 1, config.hurtDuration);
       }
+    }
+    if (this.boss instanceof SalamandraBoss && this.boss.phase === "impact" && previousBossPhase !== "impact") {
+      this.particles.burst(this.boss.x + this.boss.width / 2, FLOOR - 10, "#ffad4a", 30, 7);
+      this.camera.impulse(3.1, 8);
+      this.beep(145, .17);
     }
     if (this.boss?.phase === "charging" && this.tick % 4 === 0) {
       this.particles.burst(this.boss.x + this.boss.width / 2, FLOOR - 6, "#ff9a3d", 4, 5);
@@ -350,16 +391,32 @@ export class Game {
       this.loseLife();
       if (this.state !== "playing") return;
     }
+    const worldExit = resolveWorldExit(this.activeLevel, this.player, left, right, this.unlockedLevel, Boolean(this.boss?.defeated));
+    if (worldExit) {
+      this.persistAdventure();
+      this.input.clear();
+      if (worldExit.kind === "main-forward") {
+        this.adventure.regions[this.activeLevel].completed = true;
+        this.unlockedLevel = nextUnlockedLevel(this.unlockedLevel, this.activeLevel, LEVELS.length);
+        this.emit({ type: "unlockedLevelChanged", value: this.unlockedLevel });
+      }
+      this.loadLevel(worldExit.destination, worldExit.spawn);
+      this.player.inv = 35;
+      this.particles.burst(this.player.x + 15, this.player.y + 22, "#84f6e7", 16, 3);
+      this.beep(620, .12);
+      return;
+    }
     const goalX = getGoalX(this.level.width);
 
-    if (
+    if (this.activeLevel === LEVELS.length - 1 &&
       this.player.x +
       this.player.collisionBounds.width / 2 >=
       goalX && (!this.boss || this.boss.defeated)
     ) {
       this.finishLevel();
     }
-    this.camera.follow(this.player.x, this.player.vx, this.level.width, this.renderer.viewportWidth);
+    this.camera.follow(this.player.x, this.player.vx, this.level.width, this.renderer.viewportWidth,
+      this.boss?.active && !this.boss.defeated ? this.boss.x + this.boss.width / 2 : undefined);
   }
 
   private collectCoins() {
@@ -370,6 +427,7 @@ export class Game {
       if (!coin.taken && Math.hypot(centerX - coin.x, centerY - coin.y) < 32) {
         coin.taken = true; this.setCoins(this.coins + 1); this.setScore(this.score + 100);
         this.particles.burst(coin.x, coin.y, "#ffe75b", 8); this.beep(720, 0.07);
+        this.persistAdventure();
       }
     });
   }
@@ -392,6 +450,7 @@ export class Game {
         this.particles.burst(pickup.x, pickup.y, pickup.type === "shield" ? "#75f7e7" : "#ffe047", 20);
         this.beep(820, 0.18);
       }
+      this.persistAdventure();
     });
   }
 
@@ -419,6 +478,7 @@ export class Game {
       if (checkpoint.activated || !checkpointTouchesPlayer(checkpoint, this.player)) return;
       this.lastSafe = activateCheckpoint(this.checkpoints, checkpoint);
       this.particles.burst(checkpoint.x, checkpoint.y + 18, "#75f7e7", 22, 5); this.beep(760, .18);
+      this.persistAdventure();
     });
   }
 
@@ -441,12 +501,14 @@ export class Game {
       return;
     }
     this.setLives(this.lives - damage); this.particles.spawnPlayerHit(this.player);
+    this.persistAdventure();
     this.camera.impulse(2, 5); this.beep(110, 0.18);
     if (this.lives <= 0) this.setState("lost");
   }
 
   private loseLife() {
     this.setLives(this.lives - 1); this.beep(90, 0.2);
+    this.persistAdventure();
     if (this.lives <= 0) { this.setState("lost"); return; }
     const respawn = resolveRespawnPosition(this.lastSafe, this.checkpoints);
     this.player.x = respawn.x; this.player.y = respawn.y - 8;
@@ -460,9 +522,8 @@ export class Game {
 
     const goalX = getGoalX(this.level.width);
 
-    this.setScore(
-      this.score + this.lives * 500,
-    );
+    if (!this.adventure.regions[this.activeLevel].completed) this.setScore(this.score + this.lives * 500);
+    this.adventure.regions[this.activeLevel].completed = true;
 
     this.particles.burst(
       goalX,
@@ -475,27 +536,7 @@ export class Game {
 
     this.finishTimer = 0;
 
-    this.finishTarget =
-      this.activeLevel === LEVELS.length - 1
-        ? "won"
-        : "map";
-
-    this.unlockedLevel =
-      nextUnlockedLevel(
-        this.unlockedLevel,
-        this.activeLevel,
-        LEVELS.length,
-      );
-
-    this.emit({
-      type: "unlockedLevelChanged",
-      value: this.unlockedLevel,
-    });
-
-    window.localStorage.setItem(
-      PROGRESS_KEY,
-      String(this.unlockedLevel),
-    );
+    this.persistAdventure();
 
     this.player.vx = 0;
     this.player.vy = -7;
@@ -554,9 +595,7 @@ export class Game {
     }
 
     if (this.finishTimer >= 96) {
-      this.setState(
-        this.finishTarget,
-      );
+      this.setState("won");
     }
   }
 
@@ -585,6 +624,32 @@ export class Game {
       animationFrame: this.animation.frame,
       attackTimer:this.attackTimer,
       boss:this.boss,
+      unlockedLevel:this.unlockedLevel,
+      zoneBannerTimer:this.zoneBannerTimer,
+    });
+  }
+
+  private persistAdventure() {
+    const region = this.adventure.regions[this.activeLevel];
+    region.coins = this.coinList.flatMap((coin, index) => coin.taken ? [index] : []);
+    region.pickups = this.pickupList.flatMap((pickup, index) => pickup.taken ? [index] : []);
+    region.checkpointId = this.checkpoints.find((checkpoint) => checkpoint.activated)?.id ?? null;
+    region.bossDefeated ||= Boolean(this.boss?.defeated);
+    this.adventure.score = this.score;
+    this.adventure.lives = this.lives;
+    this.adventure.unlockedLevel = this.unlockedLevel;
+    this.adventure.currentRegion = this.activeLevel;
+    try { writeAdventureSave(window.localStorage, this.adventure); } catch { /* Private storage can be unavailable. */ }
+    this.emitAdventure();
+  }
+
+  private emitAdventure() {
+    this.emit({
+      type: "adventureChanged",
+      visited: [...this.adventure.visitedLevels],
+      completed: this.adventure.regions.flatMap((region, index) => region.completed ? [index] : []),
+      coins: this.adventure.regions.map((region) => region.coins.length),
+      currentRegion: this.adventure.currentRegion,
     });
   }
 

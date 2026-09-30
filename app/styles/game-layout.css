@@ -28,6 +28,7 @@ footer b { color:white; font-size:11px; }
 .mobile-controls button { pointer-events:auto; width:58px; height:58px; border:2px solid rgba(255,255,255,.5); background:rgba(36,16,71,.72); color:white; border-radius:50%; font-size:25px; font-weight:900; touch-action:none; }
 .mobile-controls .jump { background:rgba(255,61,119,.82); border-color:#ffb3ca; }
 .mobile-controls .attack { background:rgba(75,44,124,.88); border-color:#d4b6ff; }
+.mobile-controls .dash { background:rgba(29,129,145,.88); border-color:#94f5ef; }
 .mobile-controls button:active { background:#7653ae; transform:scale(.94); }
 .power-badge { position:absolute; z-index:2; top:18px; left:18px; display:flex; align-items:center; gap:8px; padding:9px 14px; border:2px solid rgba(255,255,255,.7); border-radius:99px; background:rgba(36,16,71,.82); color:white; font-size:12px; font-weight:1000; letter-spacing:1.5px; box-shadow:0 7px 20px rgba(20,7,51,.35); }
 .power-badge span { display:grid; place-items:center; width:24px; height:24px; border-radius:50%; }

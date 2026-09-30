@@ -32,7 +32,7 @@ export function PauseMenu({ levelName, onResume, onRestart, onExit }: Props) {
         <button type="button" onClick={onRestart}>Reiniciar nivel <span>↻</span></button>
         <button type="button" onClick={onExit}>Salir al mapa <span>⌂</span></button>
       </div>
-      <p id="pause-description">Reiniciar o salir descarta este intento. Tus mundos desbloqueados se conservan.</p>
+      <p id="pause-description">Tu exploración, objetos y checkpoints se guardan al salir. Reiniciar vuelve al inicio de la región.</p>
       <small><kbd>P</kbd> o <kbd>ESC</kbd> para continuar</small>
     </dialog>
   );

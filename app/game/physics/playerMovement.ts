@@ -42,6 +42,16 @@ export function consumeBufferedJump(player: Player, velocity: number, jumpStartD
   return true;
 }
 
+export function consumeAirJump(player: Player, unlocked: boolean, pressed: boolean,
+  velocity: number, jumpStartDuration: number) {
+  if (!unlocked || !pressed || !player.airJumpAvailable || player.grounded || player.coyoteTimer > 0) return false;
+  player.airJumpAvailable = false;
+  player.jumpBufferTimer = 0;
+  player.vy = -velocity * .9;
+  player.jumpStartTimer = jumpStartDuration;
+  return true;
+}
+
 export function updatePlayerTimers(player: Player, stepSeconds: number) {
   player.coyoteTimer = Math.max(0, player.coyoteTimer - stepSeconds);
   player.jumpBufferTimer = Math.max(0, player.jumpBufferTimer - stepSeconds);

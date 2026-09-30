@@ -13,6 +13,7 @@ import { EnemyRendererFactory } from "./enemy/EnemyRendererFactory";
 import { ProjectileRenderer } from "./enemy/ProjectileRenderer";
 import { WorldRenderer } from "./world/WorldRenderer";
 import { GoalRenderer } from "./world/GoalRenderer";
+import { renderBranchHint, renderRegionExit } from "./world/RegionExitRenderer";
 import { MEADOW_BIOME } from "./world/biomes/meadow";
 import type { RenderState } from "../types";
 import { AssetManager } from "../assets/AssetManager.ts";
@@ -74,6 +75,14 @@ export class GameRenderer {
     ctx.save(); ctx.translate(-cameraX, 0);
     world.renderPlatforms(worldContext);
     world.renderGameplay(worldContext);
+    if (view.activeLevel > 0 && isVisibleInCamera(0, 120, cameraX, width))
+      renderRegionExit(ctx, 12, LEVELS[view.activeLevel - 1].name, -1, false, tick);
+    if (view.activeLevel < LEVELS.length - 1 && isVisibleInCamera(level.width - 120, 120, cameraX, width))
+      renderRegionExit(ctx, level.width - 12, LEVELS[view.activeLevel + 1].name, 1, Boolean(view.boss && !view.boss.defeated), tick);
+    if (view.activeLevel === 0 && view.unlockedLevel >= 2 && isVisibleInCamera(3250, 140, cameraX, width))
+      renderBranchHint(ctx, 3300, 150, "↑ GRUTAS ALTAS");
+    if (view.activeLevel === 2 && isVisibleInCamera(3070, 130, cameraX, width))
+      renderBranchHint(ctx, 3130, 380, "↓ PRADERA ALTA");
 
     const gameplayAtlas = this.assets.get(GLOBAL_ASSETS.collectibles.id);
     view.coins.forEach((coin, index) => {
@@ -237,7 +246,7 @@ export class GameRenderer {
     view.projectiles.forEach((projectile) => { if (isVisibleInCamera(projectile.x, projectile.visualBounds.width, cameraX, width)) this.projectileRenderer.render(ctx, projectile); });
 
     const goalX = getGoalX(level.width);
-    if (isVisibleInCamera(goalX - 70, 150, cameraX, width)) {
+    if (view.activeLevel === LEVELS.length - 1 && isVisibleInCamera(goalX - 70, 150, cameraX, width)) {
       this.goalRenderer.render(ctx, {
         x: goalX, biome: level.biome, tick,
         locked: Boolean(view.boss && !view.boss.defeated),
@@ -271,6 +280,7 @@ export class GameRenderer {
     if (view.boss?.active && !view.boss.defeated) this.drawBossHealth(view);
 
     if (view.state === "finishing") this.drawFinish(view);
+    if (view.state === "playing" && view.zoneBannerTimer > 0) this.drawZoneBanner(view);
     if (!this.globalReady) this.drawLoading();
 
     const vignette = ctx.createRadialGradient(width / 2, height / 2, 190, width / 2, height / 2, 650);
@@ -306,6 +316,23 @@ export class GameRenderer {
       ctx.ellipse(boss.x + boss.width / 2, 447, radius, 15, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
+    if (boss.phase === "warningLeap" || boss.phase === "leaping") {
+      const pulse = .45 + Math.sin(view.tick * .25) * .2;
+      ctx.fillStyle = `rgba(255,104,43,${pulse * .5})`;
+      ctx.strokeStyle = `rgba(255,227,120,${pulse + .3})`;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.ellipse(boss.targetX + boss.width / 2, 452, 105, 17, 0, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+    }
+    if (boss.phase === "impact") {
+      const spread = (18 - boss.timer) * 10;
+      ctx.strokeStyle = `rgba(255,225,134,${boss.timer / 18})`;
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.ellipse(boss.x + boss.width / 2, 452, 95 + spread, 12, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     if (boss.phase === "charging") {
       const trail = ctx.createLinearGradient(boss.x - boss.facing * 100, 0, boss.x + boss.width / 2, 0);
       trail.addColorStop(0, "rgba(255,147,42,0)");
@@ -327,12 +354,12 @@ export class GameRenderer {
       const breathing = Math.sin(boss.age * .12) * .018;
       const bob = boss.phase === "charging" ? Math.sin(boss.age * .9) * 3 :
         boss.phase === "exposed" ? 3 + Math.sin(boss.age * .18) * 2 : Math.sin(boss.age * .12) * 2;
-      ctx.translate(boss.x + boss.width / 2, 458 + bob);
+      ctx.translate(boss.x + boss.width / 2, boss.y + boss.height + bob);
       ctx.scale(boss.facing === -1 ? 1 : -1, 1);
-      ctx.rotate(boss.phase === "charging" ? -.055 : boss.phase === "exposed" ? .035 : 0);
+      ctx.rotate(boss.phase === "charging" ? -.055 : boss.phase === "leaping" ? -.12 : boss.phase === "exposed" ? .035 : 0);
       ctx.scale(boss.phase === "charging" ? 1.08 : 1 + breathing,
-        boss.phase === "warning" ? .94 - breathing : boss.phase === "exposed" ? .91 : 1 - breathing);
-      ctx.drawImage(image, source.x, source.y, source.width, source.height, -94, -127, 188, 127);
+        boss.phase === "impact" ? .82 : boss.phase === "warning" || boss.phase === "warningLeap" ? .94 - breathing : boss.phase === "exposed" ? .91 : 1 - breathing);
+      ctx.drawImage(image, source.x, source.y, source.width, source.height, -87, -119, 174, 119);
     } else {
       ctx.fillStyle = "#f56726";
       ctx.beginPath();
@@ -346,14 +373,15 @@ export class GameRenderer {
     const boss = view.boss!;
     const crystal = boss instanceof CrystalGuardianBoss;
     const { ctx } = this;
-    const width = crystal ? 300 : 260, x = (this.logicalWidth - width) / 2;
+    const width = Math.min(crystal ? 300 : 260, this.logicalWidth - 40);
+    const x = (this.logicalWidth - width) / 2;
     ctx.save();
     ctx.fillStyle = "rgba(31,11,31,.88)";
     ctx.fillRect(x - 12, 14, width + 24, 61);
     ctx.textAlign = "center";
     ctx.fillStyle = "#fff4dd";
     ctx.font = "bold 14px Arial";
-    ctx.fillText(boss.name.toUpperCase(), this.logicalWidth / 2, 33);
+    ctx.fillText(boss.name.toUpperCase(), this.logicalWidth / 2, 33, width);
     ctx.fillStyle = "#522632";
     ctx.fillRect(x, 41, width, 12);
     ctx.fillStyle = boss.vulnerable ? "#ffe079" : crystal ? "#69dcf5" : "#ff693d";
@@ -375,8 +403,9 @@ export class GameRenderer {
       boss.phase === "warningWaves" || boss.phase === "waves" ? "ONDAS DE CRISTAL · SALTA" :
       boss.phase === "warningBolts" || boss.phase === "barrage" ? "PROYECTILES · MUÉVETE" :
       boss.phase === "stagger" ? "EL GUARDIÁN SE RECOMPONE" : "EL GUARDIÁN DESPIERTA" :
-      "ESQUIVA LA EMBESTIDA · ESPERA SU PAUSA";
-    ctx.fillText(hint, this.logicalWidth / 2, 69);
+      boss.phase === "warningLeap" || boss.phase === "leaping" || boss.phase === "impact" ?
+        "SALTO ÍGNEO · ALÉJATE DEL CÍRCULO" : "ESQUIVA LA EMBESTIDA · ESPERA SU PAUSA";
+    ctx.fillText(hint, this.logicalWidth / 2, 69, width + 8);
     ctx.restore();
   }
 
@@ -393,7 +422,7 @@ export class GameRenderer {
       const frameHeight =
         niko.naturalHeight / 4;
 
-      this.playerRenderer =
+      const playerRenderer =
         new SpritePlayerRenderer({
           image: niko,
 
@@ -411,6 +440,8 @@ export class GameRenderer {
 
           scale: 0.21,
         });
+      playerRenderer.prepareFrames();
+      this.playerRenderer = playerRenderer;
     }
 
     (
@@ -467,6 +498,29 @@ export class GameRenderer {
     ctx.fillStyle = "#fff"; ctx.font = "1000 58px Arial"; ctx.fillText("¡META!", this.logicalWidth / 2, 130 - lift);
     ctx.fillStyle = "#ffe047"; ctx.font = "900 18px Arial";
     ctx.fillText(`CAPÍTULO ${view.activeLevel + 1} COMPLETADO`, this.logicalWidth / 2, 163 - lift);
+    if (view.activeLevel === 1 || view.activeLevel === 2) {
+      ctx.fillStyle = "#9cf9eb"; ctx.font = "bold 15px Arial";
+      ctx.fillText(view.activeLevel === 1 ? "¡SALTO DOBLE DESBLOQUEADO!" : "¡IMPULSO ASTRAL DESBLOQUEADO!", this.logicalWidth / 2, 189 - lift);
+    }
+    ctx.restore();
+  }
+
+  private drawZoneBanner(view: RenderState) {
+    const alpha = Math.min(1, view.zoneBannerTimer / 22, (132 - view.zoneBannerTimer) / 18);
+    const { ctx } = this;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, alpha);
+    ctx.fillStyle = "rgba(25,13,48,.76)";
+    ctx.fillRect(this.logicalWidth / 2 - 215, 78, 430, 72);
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#fff7dd";
+    ctx.font = "bold 21px Arial";
+    ctx.fillText(view.level.name.toUpperCase(), this.logicalWidth / 2, 107, 400);
+    ctx.fillStyle = "#9cf9eb";
+    ctx.font = "bold 12px Arial";
+    const ability = view.activeLevel === 2 && view.unlockedLevel >= 2 ? "SALTO DOBLE DESBLOQUEADO" :
+      view.activeLevel === 3 && view.unlockedLevel >= 3 ? "IMPULSO ASTRAL DESBLOQUEADO" : "EXPLORA · DESCUBRE · REGRESA";
+    ctx.fillText(ability, this.logicalWidth / 2, 132, 400);
     ctx.restore();
   }
 

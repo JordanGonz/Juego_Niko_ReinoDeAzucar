@@ -7,7 +7,7 @@ import { createPlayer } from '../app/game/entities/Player.ts';
 import { createEnemies } from '../app/game/enemies/factory.ts';
 import { attackHits } from '../app/game/systems/AttackSystem.ts';
 
-test('todas las plataformas son alcanzables desde la ruta inicial con salto normal',()=>{
+test('la ruta principal es alcanzable con salto normal y la ruta alta pide volver con salto doble',()=>{
   for(const level of LEVELS){
     const config=movementForLevel(level),edges=level.platforms.map(()=>[]);
     level.platforms.forEach((from,i)=>level.platforms.forEach((to,j)=>{
@@ -21,7 +21,19 @@ test('todas las plataformas son alcanzables desde la ruta inicial con salto norm
       }
     }));
     const reached=new Set([0]),queue=[0];while(queue.length){for(const next of edges[queue.shift()])if(!reached.has(next)){reached.add(next);queue.push(next);}}
-    assert.equal(reached.size,level.platforms.length,level.name+' tiene plataforma inaccesible');
+    const secret = level.biome === 'meadow' ? level.platforms.length - 1 : -1;
+    assert.equal(reached.size,level.platforms.length-(secret >= 0 ? 1 : 0),level.name+' tiene plataforma inaccesible');
+    if (secret >= 0) {
+      assert.equal(reached.has(secret),false);
+      const from = level.platforms[13], to = level.platforms[secret];
+      let y = from[1], vy = -config.jumpVelocity, jumpedTwice = false, landed = false;
+      for (let frame = 0; frame < 120; frame++) {
+        if (!jumpedTwice && vy >= 0) { vy = -config.jumpVelocity * .9; jumpedTwice = true; }
+        const previous = y; vy = applyGravity(vy, config); y += vy;
+        if (jumpedTwice && vy > 0 && previous <= to[1] && y >= to[1]) { landed = true; break; }
+      }
+      assert.equal(landed,true,'la ruta alta debe poder alcanzarse al regresar');
+    }
     assert.equal(level.platforms[0][1],FLOOR);
   }
 });
